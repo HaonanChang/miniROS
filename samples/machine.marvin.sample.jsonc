@@ -1,0 +1,103 @@
+{
+    "commander": {
+        "type": "commander",
+        "name": "commander",
+        "host": "127.0.0.1",
+        "port": 5555
+    },
+    "marvin": {
+        "type": "marvin",
+        "name": "marvin",
+        "host": "127.0.0.1",
+        "port": 5556,
+        "commander": "commander",  // Who control state machine
+        "gello": "gello",
+        "recorder": "recorder",
+        "robot_params": {
+            "robot_type": "piper",
+            "parent_link": "origin",
+            "parent_tf": [0.0, 0, 0, 1, 0, 0, 0]
+        }
+    },
+    "recorder": {
+        "type": "recorder",
+        "name": "recorder",
+        "host": "127.0.0.1",
+        "port": 5558,
+        "commander": "commander"  // Who control state machine
+    },
+    "cameras": {
+        "type": "cameras",
+        "name": "cameras",
+        "host": "127.0.0.1",
+        "port": 5559,
+        "commander": "commander",
+        "recorder": "self",
+        "input_list": [
+            {
+                "name": "camera_left",
+                "type": "realsense",
+                "path": "XXXXXXXXX",
+                "params": {
+                    "width": 1280,
+                    "height": 720,
+                    "fps": 30
+                }
+            },
+            {
+                "name": "camera_right",
+                "type": "realsense",
+                "path": "XXXXXXXXX",
+                "params": {
+                    "width": 1280,
+                    "height": 720,
+                    "fps": 30
+                }
+            },
+            {
+                "name": "camera_top",
+                "type": "realsense",
+                "path": "XXXXXXXXX",
+                "params": {
+                    "width": 1280,
+                    "height": 720,
+                    "fps": 30
+                }
+            }
+        ]
+    },
+    "display_pc": {
+        "type": "display_pc",
+        "name": "display_pc",
+        "host": "127.0.0.1",
+        "port": 5006,
+        "commander": "commander"
+    },
+    "gello": {
+        "type": "gello",
+        "name": "gello",
+        "host": "127.0.0.1",
+        "port": 5556,
+        "commander": "commander",  // Who control state machine
+        "recorder": "recorder",
+        "gello_params": {
+            "gello_type": "joint_map",
+            "joint_map": {
+                "joint_1": "joint_1",
+                "joint_2": "joint_2",
+                "joint_3": "joint_3"
+            }
+        },
+        "input_list": [
+            {
+                "name": "gello",
+                "type": "feetech_gello",
+                "path": "/dev/ttyUSB0",
+                "params": {
+                    "baudrate": 1000000,
+                    "timeout": 0.005
+                }
+            }
+        ]
+    }
+}

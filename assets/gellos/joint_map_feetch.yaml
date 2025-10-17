@@ -1,0 +1,160 @@
+joint_1:
+  id: 8
+  lower_limit: -3.141592653589793
+  motor_type: Left
+  port: /dev/ttyACM0
+  ref_point: 90
+  scale: 1.0
+  sign: -1
+  upper_limit: 3.141592653589793
+  zero_point: 100.283203125
+joint_2:
+  id: 9
+  lower_limit: -3.141592653589793
+  motor_type: Left
+  port: /dev/ttyACM0
+  ref_point: -90
+  scale: 1.0
+  sign: -1
+  upper_limit: 3.141592653589793
+  zero_point: 209.091796875
+joint_3:
+  id: 10
+  lower_limit: -3.141592653589793
+  motor_type: Left
+  port: /dev/ttyACM0
+  ref_point: 0
+  scale: 1.0
+  sign: -1
+  upper_limit: 3.141592653589793
+  zero_point: 291.181640625
+joint_4:
+  id: 11
+  lower_limit: -3.141592653589793
+  motor_type: Left
+  port: /dev/ttyACM0
+  ref_point: 0
+  scale: 1.0
+  sign: 1
+  upper_limit: 3.141592653589793
+  zero_point: 324.84375
+joint_5:
+  id: 12
+  lower_limit: -3.141592653589793
+  motor_type: Left
+  port: /dev/ttyACM0
+  ref_point: 0
+  scale: 1.0
+  sign: -1
+  upper_limit: 3.141592653589793
+  zero_point: 234.31640625
+joint_6:
+  id: 13
+  lower_limit: -1.0471975511965976
+  motor_type: Left
+  port: /dev/ttyACM0
+  ref_point: 0
+  scale: 1.0
+  sign: 1
+  upper_limit: 1.0471975511965976
+  zero_point: 234.140625
+joint_7:
+  id: 14
+  lower_limit: -1.0471975511965976
+  motor_type: Left
+  port: /dev/ttyACM0
+  ref_point: 0
+  scale: 1.0
+  sign: 1
+  upper_limit: 1.0471975511965976
+  zero_point: 209.70703125
+joint_8:
+  id: 15
+  lower_limit: 0.0
+  motor_type: Left
+  port: /dev/ttyACM0
+  ref_point: 57.29577951308232
+  scale: 1.909859317102744
+  sign: -1
+  upper_limit: 1.0
+  zero_point: 298.212890625
+joint_9:
+  id: 0
+  lower_limit: -3.141592653589793
+  motor_type: Right
+  port: /dev/ttyACM0
+  ref_point: -90
+  scale: 1.0
+  sign: -1
+  upper_limit: 3.141592653589793
+  zero_point: 104.501953125
+joint_10:
+  id: 1
+  lower_limit: -3.141592653589793
+  motor_type: Right
+  port: /dev/ttyACM0
+  ref_point: -90
+  scale: 1.0
+  sign: 1
+  upper_limit: 3.141592653589793
+  zero_point: 299.1796875
+joint_11:
+  id: 2
+  lower_limit: -3.141592653589793
+  motor_type: Right
+  port: /dev/ttyACM0
+  ref_point: 0
+  scale: 1.0
+  sign: -1
+  upper_limit: 3.141592653589793
+  zero_point: 189.228515625
+joint_12:
+  id: 3
+  lower_limit: -3.141592653589793
+  motor_type: Right
+  port: /dev/ttyACM0
+  ref_point: 0
+  scale: 1.0
+  sign: -1
+  upper_limit: 3.141592653589793
+  zero_point: 104.58984375
+joint_13:
+  id: 4
+  lower_limit: -3.141592653589793
+  motor_type: Right
+  port: /dev/ttyACM0
+  ref_point: 0
+  scale: 1.0
+  sign: -1
+  upper_limit: 3.141592653589793
+  zero_point: 137.63671875
+joint_14:
+  id: 5
+  lower_limit: -1.0471975511965976
+  motor_type: Right
+  port: /dev/ttyACM0
+  ref_point: 0
+  scale: 1.0
+  sign: -1
+  upper_limit: 1.0471975511965976
+  zero_point: 54.140625
+joint_15:
+  id: 6
+  lower_limit: -1.0471975511965976
+  motor_type: Right
+  port: /dev/ttyACM0
+  ref_point: 0
+  scale: 1.0
+  sign: 1
+  upper_limit: 1.0471975511965976
+  zero_point: 20.91796875
+joint_16:
+  id: 7
+  lower_limit: -3.141592653589793
+  motor_type: Right
+  port: /dev/ttyACM0
+  ref_point: 57.29577951308232
+  scale: 1.909859317102744
+  sign: 1
+  upper_limit: 3.141592653589793
+  zero_point: 5.712890625

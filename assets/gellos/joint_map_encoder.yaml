@@ -1,0 +1,84 @@
+joint_1:
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_b0c389d7a80aee11a97a3e02f59e3369-if00-port0
+  id: 1
+  sign: -1
+  zero_point: 4.591263130296284
+  scale: 1
+joint_2:
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_b0c389d7a80aee11a97a3e02f59e3369-if00-port0
+  id: 2
+  sign: -1
+  zero_point: 4.146378703962928
+  scale: 1
+joint_3:
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_b0c389d7a80aee11a97a3e02f59e3369-if00-port0
+  id: 3
+  sign: 1
+  zero_point: 4.445528137754757
+  scale: 1
+joint_4:
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_b0c389d7a80aee11a97a3e02f59e3369-if00-port0
+  id: 4
+  sign: 1
+  zero_point: 3.3026865435488695
+  scale: 1
+joint_5:
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_b0c389d7a80aee11a97a3e02f59e3369-if00-port0
+  id: 5
+  sign: -1
+  zero_point: 4.323180557189954
+  scale: 1
+joint_6:
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_b0c389d7a80aee11a97a3e02f59e3369-if00-port0
+  id: 6
+  sign: 1
+  zero_point: 1.2671090369478832
+  scale: 1
+joint_7:
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_b0c389d7a80aee11a97a3e02f59e3369-if00-port0
+  id: 7
+  sign: 1
+  zero_point: 3.630982975849003
+  scale: 1
+joint_8:
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_f6dfa010bf0aee11aa4d4b02f59e3369-if00-port0
+  id: 1
+  sign: 1
+  zero_point: 3.8901643697701607
+  scale: 1
+joint_9:
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_f6dfa010bf0aee11aa4d4b02f59e3369-if00-port0
+  id: 2
+  sign: -1
+  zero_point: 0.7658504757751119
+  scale: 1
+joint_10:
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_f6dfa010bf0aee11aa4d4b02f59e3369-if00-port0
+  id: 3
+  sign: 1
+  zero_point: 0.8651597102135892
+  scale: 1
+joint_11:
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_f6dfa010bf0aee11aa4d4b02f59e3369-if00-port0
+  id: 4
+  sign: -1
+  zero_point: 2.35165663413716
+  scale: 1
+joint_12:
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_f6dfa010bf0aee11aa4d4b02f59e3369-if00-port0
+  id: 5
+  sign: -1
+  zero_point: 3.017325210847797
+  scale: 1
+joint_13:
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_f6dfa010bf0aee11aa4d4b02f59e3369-if00-port0
+  id: 6
+  sign: -1
+  zero_point: 1.9481365110760707
+  scale: 1
+joint_14:
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_f6dfa010bf0aee11aa4d4b02f59e3369-if00-port0
+  id: 7
+  sign: 1
+  zero_point: 3.166201796042913
+  scale: 1
