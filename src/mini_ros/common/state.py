@@ -17,10 +17,3 @@ class InputDeviceState(OrderedEnum):
     READY = 2
     RECORDING = 3
     STOPPED = 4
-
-
-# class InputDeviceState(OrderedEnum):
-#     INIT = 0
-#     READY = 1
-#     ACTIVE = 2
-#     STOPPED = 3

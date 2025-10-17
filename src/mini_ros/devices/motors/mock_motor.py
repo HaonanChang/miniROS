@@ -5,10 +5,10 @@ General mocked driver, you can define the input you want.
 from typing import Optional, Sequence, List
 import numpy as np
 from loguru import logger
-from mini_ros.inputs.drivers.motor_driver import MotorDriver, MotorConfig
+from mini_ros.common.device import MotorDevice, MotorConfig, motor_config_from_json
 
 
-class MockMotorDriver(MotorDriver):
+class MockMotorReader(MotorDevice):
     """
     A mock motor driver, you can define the angle you want
     """
@@ -48,6 +48,6 @@ if __name__ == "__main__":
         MotorConfig(joint_name="joint_1", port="port_1", id=1, sign=1, zero_point=0, scale=1, ref_point=0),
         MotorConfig(joint_name="joint_2", port="port_2", id=2, sign=1, zero_point=0, scale=1, ref_point=0),
     ]
-    mock_motor_driver = MockMotorDriver(ids=[1, 2], default_output=[0, 0])
+    mock_motor_driver = MockMotorReader(ids=[1, 2], default_output=[0, 0])
     mock_motor_driver.initialize(joint_config)
     print(mock_motor_driver.get_state())

@@ -7,12 +7,12 @@ import yaml
 import numpy as np
 from typing import Dict, Any, List
 from loguru import logger
-from mini_ros.inputs.drivers.motor_driver import MotorDriver, motor_config_from_json, MotorConfig
+from mini_ros.common.device import Reader, motor_config_from_json
 
 DEBUG_GELLO_FEETCH = True
 
 
-class FeetechDriver(MotorDriver):
+class FeetechReader(Reader):
     """
     Encoder interface using Feetech motors.
     Reading encoder from one line is fast.
@@ -29,7 +29,7 @@ class FeetechDriver(MotorDriver):
     def __init__(self):
         pass
 
-    def initialize(self, joint_config: List[MotorConfig]):
+    def initialize(self, joint_config: List[Any]):
         self.ADDR_STS_PRESENT_POSITION  = 56
         self.BAUDRATE = 1000000           # SCServo default baudrate : 1000000
         self.protocol_end = 0
@@ -201,7 +201,7 @@ if __name__ == "__main__":
         joint_config = yaml.load(f, Loader=yaml.FullLoader)
 
     motor_config = motor_config_from_json(joint_config)
-    gello = FeetechDriver()
+    gello = FeetechReader()
     gello.initialize(motor_config)
 
     while True:

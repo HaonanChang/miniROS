@@ -26,6 +26,7 @@ dependencies = [
     "dynamixel_sdk",
     "feetech-servo-sdk",
     "pyyaml>=6.0.2",
+    "record3d",
 ]
 
 [tool.hatch.build.targets.wheel]

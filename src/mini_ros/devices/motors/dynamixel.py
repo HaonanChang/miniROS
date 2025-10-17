@@ -9,7 +9,7 @@ import numpy as np
 import yaml
 import os
 import time
-from mini_ros.inputs.drivers.motor_driver import MotorDriver, motor_config_from_json, MotorConfig
+from mini_ros.common.device import MotorDevice, MotorConfig, motor_config_from_json
 from typing import List
 
 from loguru import logger
@@ -17,7 +17,7 @@ from loguru import logger
 DEBUG_DYNAMIXEL_GELLO = False
 
 
-class DynamixelGello(MotorDriver):
+class DynamixelReader(MotorDevice):
     """
     Encoder interface using Dynamixel motors.
     Reading encoder from one line is fast.
@@ -30,7 +30,7 @@ class DynamixelGello(MotorDriver):
         - ref_point: reference point of the joint
     """
     name = "dynamixel"
-    
+
     def __init__(self):
         pass
 
@@ -223,7 +223,7 @@ if __name__ == "__main__":
 
     action_rate = 60 # Hz
     action_period = 1 / action_rate
-    gello = DynamixelGello()
+    gello = DynamixelReader()
 
     gello.initialize(motor_config_from_json(joint_config))
     while True:

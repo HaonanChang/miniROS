@@ -13,8 +13,7 @@ from mini_ros.utils.rate_limiter import RateLimiter
 from mini_ros.utils.async_util import AsyncUtil
 from mini_ros.utils.time_util import TimeUtil
 from mini_ros.common.state import InputDeviceState
-from mini_ros.common.driver import Driver
-from mini_ros.common.device import Device
+from mini_ros.common.device import Device, Reader
 
 DEBUG_ASYNC_INPUT = True
 
@@ -28,16 +27,16 @@ class AsyncInput(Device):
     NOTICE: There is one thing I need to think, should I have a reading limiter?
     """
 
-    def __init__(self, drivers: Dict[str, Driver], driver_configs: Dict[str, Any], driver_rate: Dict[str, int]):
+    def __init__(self, readers: Dict[str, Reader], reader_configs: Dict[str, Any], polling_rate: Dict[str, int]):
         """
         Initialize the InputDeviceAsyncWrapper object
         """
 
-        super().__init__(f"{'&'.join(drivers.keys())}")
-        assert len(drivers) == len(driver_configs), "Number of drivers and driver configs must be the same"
-        self.drivers: Dict[str, Driver] = drivers
-        self.driver_configs: Dict[str, Any] = driver_configs
-        self.driver_limiters: Dict[str, RateLimiter] = {driver_name: RateLimiter(driver_rate[driver_name]) for driver_name in drivers.keys()}
+        super().__init__(f"{'&'.join(readers.keys())}")
+        assert len(readers) == len(reader_configs), "Number of drivers and driver configs must be the same"
+        self.readers: Dict[str, Reader] = readers
+        self.reader_configs: Dict[str, Any] = reader_configs
+        self.reader_limiters: Dict[str, RateLimiter] = {driver_name: RateLimiter(polling_rate[driver_name]) for driver_name in readers.keys()}
 
         # Internal state
         self.state: InputDeviceState = InputDeviceState.INIT
@@ -47,8 +46,8 @@ class AsyncInput(Device):
         self._polling_read_tasks: Dict[str, asyncio.Task] = {}
 
         # Store the input value for each driver, coroutine safe
-        self._input_queues: Dict[str, asyncio.Queue] = {driver_name: asyncio.Queue(maxsize=1) for driver_name in drivers.keys()}
-        self._event_listeners: Dict[str, Set[Callable[..., Coroutine[Any, Any, Any]]]] = {driver_name: set([]) for driver_name in drivers.keys()}
+        self._input_queues: Dict[str, asyncio.Queue] = {driver_name: asyncio.Queue(maxsize=1) for driver_name in readers.keys()}
+        self._event_listeners: Dict[str, Set[Callable[..., Coroutine[Any, Any, Any]]]] = {driver_name: set([]) for driver_name in readers.keys()}
 
     async def wait_for_state(self, target_state: InputDeviceState):
         async with self.condition:
@@ -59,13 +58,13 @@ class AsyncInput(Device):
             self.state = new_state
             self.condition.notify_all()
 
-    async def initialize(self, driver_config: Any):
+    async def initialize(self):
         """
         Perform handshake with the device and establish communication
         """
 
-        for driver_name, driver_config in self.driver_configs.items():
-            await AsyncUtil.run_blocking_as_async(self.drivers[driver_name].initialize, driver_config)
+        for driver_name, reader_config in self.reader_configs.items():
+            await AsyncUtil.run_blocking_as_async(self.readers[driver_name].initialize, reader_config)
         await self.set_state(InputDeviceState.OPEN)
     
     async def start_record(self):
@@ -102,8 +101,8 @@ class AsyncInput(Device):
         """
 
         await self.wait_for_state(InputDeviceState.OPEN)
-        self._polling_read_tasks = {driver_name: AsyncUtil.detach_coroutine(self._reading_loop(driver_name)) for driver_name in self.drivers.keys()}
-        for driver_name in self.drivers.keys():
+        self._polling_read_tasks = {driver_name: AsyncUtil.detach_coroutine(self._reading_loop(driver_name)) for driver_name in self.readers.keys()}
+        for driver_name in self.readers.keys():
             self._polling_read_tasks[driver_name].add_done_callback(lambda _: self._input_queues[driver_name].task_done())
         await TimeUtil.sleep_by_ms(500)  # Wait for the reading loop to start
         await self.set_state(InputDeviceState.READY)
@@ -129,7 +128,7 @@ class AsyncInput(Device):
 
         await self.wait_for_state(InputDeviceState.RECORDING)
 
-        limiter = self.driver_limiters[driver_name]
+        limiter = self.reader_limiters[driver_name]
         await limiter.wait_for_tick("AsyncInput_get_state")
         # Handover wait for the value to be available to the reading loop
         val = await self._input_queues[driver_name].get()  # Block until a value is available
@@ -142,7 +141,7 @@ class AsyncInput(Device):
         Polling from the driver ASAP.
         """
 
-        limiter = self.driver_limiters[driver_name]
+        limiter = self.reader_limiters[driver_name]
 
         while True:
             async with self.condition:
@@ -153,7 +152,7 @@ class AsyncInput(Device):
 
             start_time = TimeUtil.now()
             try:
-                val = await AsyncUtil.run_blocking_as_async(self.drivers[driver_name].get_state)
+                val = await AsyncUtil.run_blocking_as_async(self.readers[driver_name].get_state)
 
                 # Write the input value to shared container
                 # None generally means Communication Failure, ignore it
@@ -205,5 +204,5 @@ class AsyncInput(Device):
 
             self._polling_read_tasks = {}
 
-        for driver_name in self.drivers.keys():
-            await AsyncUtil.run_blocking_as_async(self.drivers[driver_name].stop)
+        for driver_name in self.readers.keys():
+            await AsyncUtil.run_blocking_as_async(self.readers[driver_name].stop)

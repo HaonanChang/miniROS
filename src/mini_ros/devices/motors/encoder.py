@@ -9,13 +9,13 @@ import yaml
 import os
 import time
 import numpy as np
-from mini_ros.inputs.drivers.SF15S03 import SF15S03Encoder
 from typing import Dict, Any, List  
 from loguru import logger
-from mini_ros.inputs.drivers.motor_driver import MotorDriver, MotorConfig, motor_config_from_json
+from mini_ros.common.device import MotorDevice, MotorConfig, motor_config_from_json
+from mini_ros.devices.motors.SF15S03 import SF15S03Encoder
 
 
-class EncoderDriver(MotorDriver):
+class EncoderReader(MotorDevice):
     """
     Encoder interface using SF12S03 encoders.
     Reading encoder from one line is fast.
@@ -180,7 +180,7 @@ if __name__ == "__main__":
     with open(joint_map_file, "r") as f:
         joint_config = yaml.load(f, Loader=yaml.FullLoader)
     motor_config = motor_config_from_json(joint_config)
-    encoder_driver = EncoderDriver()
+    encoder_driver = EncoderReader()
     encoder_driver.initialize(motor_config)
     while True:
         qpos = encoder_driver.get_state()
