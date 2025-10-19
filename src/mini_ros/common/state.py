@@ -37,6 +37,8 @@ class RobotState:
     """
     Robot state
     """
+    # 1: Timestamp
+    timestamp: int = 0
     # (N,): (N is the number of joints)
     joint_positions: list[float] = field(default_factory=list)
     # (N,): (N is the number of joints)
@@ -51,8 +53,6 @@ class RobotState:
     base_pose: list[float] = field(default_factory=list)
     # (6,): (x, y, z, roll, pitch, yaw)
     base_velocity: list[float] = field(default_factory=list)
-    # 1: Timestamp
-    timestamp: int
 
 
 @dataclass
@@ -60,6 +60,8 @@ class RobotAction:
     """
     Robot action
     """
+    # 1: Timestamp
+    timestamp: int
     # (N,): (N is the number of joints)
     # Joint-space Position Control
     joint_cmds: list[float] = field(default_factory=list)
@@ -72,14 +74,12 @@ class RobotAction:
     # (6,): (x, y, z, roll, pitch, yaw)
     # Base Velocity Control
     base_velocity_cmds: list[float] = field(default_factory=list)
-    # 1: Timestamp
-    timestamp: int
-
+    
 
 @dataclass
 class TimedData:
     """
     Timed data
     """
+    timestamp: int
     data: Any
-    timestamp: float

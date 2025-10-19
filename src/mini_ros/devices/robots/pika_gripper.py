@@ -1,4 +1,4 @@
-from sqlite3 import Time
+import threading
 import numpy as np
 import serial
 import time
@@ -49,6 +49,7 @@ class PikaGripper(Robot):
         self.baudrate = config.baudrate
         self.timeout = config.timeout
         self.max_motor_torque_current = config.max_motor_torque_current
+        self.data_guard = threading.Lock()
 
     def initialize(self):
         if self.port is None:
@@ -60,27 +61,23 @@ class PikaGripper(Robot):
                 logger.info("Multiple serial ports found. Using the first one.")
             self.port = ports[0]
 
-        self.serial = serial.Serial(
-            port=self.port,
-            baudrate=self.baudrate,
-            timeout=self.timeout,
-            bytesize=serial.EIGHTBITS,
-            parity=serial.PARITY_NONE,
-            stopbits=serial.STOPBITS_ONE,
-        )
-        self._buffer: str = ""
-        self._motor_data: dict[str, float | str] = {
-            "Speed": 0.0,  # current speed（rad/s）
-            "Current": 0,  # motor current（mA）
-            "Position": 0.0,  # motor position（rad）
-        }
-        self._motor_status: dict[str, float | str] = {
-            "Voltage": 0.0,  # motor driver voltage(V)
-            "DriverTemp": 0,  # motor driver temperature(°C)
-            "MotorTemp": 0,  # motor temperature(°C)
-            "Status": "0x00",  # motor driver status
-            "BusCurrent": 0,  # bus current(mA)
-        }
+        try:
+            self.serial = serial.Serial(
+                port=self.port,
+                baudrate=self.baudrate,
+                timeout=self.timeout,
+                bytesize=serial.EIGHTBITS,
+                parity=serial.PARITY_NONE,
+                stopbits=serial.STOPBITS_ONE,
+            )
+            self.is_connected = True
+            logger.info(f"Connected to port: {self.port}")
+        except serial.SerialException as e:
+            logger.error(f"Fail to connect to port: {e}")
+            self.is_connected = False
+    
+        self._buffer: str = ""  # Internal buffer, avoid data transfer
+        self._motor_current: float = 0  # motor current（mA）
         self._distance_0 = self._get_distance(0)
         self._overflow_counter = 0
         self._overflow_threshold = 100
@@ -121,8 +118,11 @@ class PikaGripper(Robot):
                 data = self.read_data()
                 if data:
                     self._buffer += data.decode("utf-8", errors="ignore")
-                    json_data = self._find_json()
-                    if json_data:
+                    try:
+                        json_data = self._find_json()
+                    except Exception as e:
+                        continue
+                    if json_data and "motor" in json_data and "motorstatus" in json_data:
                         motor_data = json_data["motor"]
                         motor_status = json_data["motorstatus"]
                         timestamp = TimeUtil.now().timestamp()
@@ -134,8 +134,10 @@ class PikaGripper(Robot):
                 time.sleep(0.001)
             except Exception as e:
                 logger.error("Error getting data: {}", e)
-
         angle = float(motor_data["Position"])
+        # Update current
+        with self.data_guard:
+            self._motor_current = motor_data["Current"]
         gripper_width = (self._get_distance(angle) - self._get_distance(0)) * 2
         gripper_width = np.clip(gripper_width, 0, PIKA_GRIPPER_WIDTH)
         gripper_width = gripper_width / PIKA_GRIPPER_WIDTH  # (0~1)
@@ -305,13 +307,15 @@ class PikaGripper(Robot):
             rad = 0
             logger.warning("motor angle cannot be negative, set to 0")
 
+        with self.data_guard:
+            motor_current = self._motor_current
         # if the current is greater than -2100, control normally
-        if float(self._motor_data["Current"]) > -2100:
+        if float(motor_current) > -2100:
             self.rad = rad
             self._send_command(PIKACommandType.POSITION_CTRL, rad)
             self._overflow_counter = 0  # Reset the overflow counter
         # if the current is less than -10000, exit with error
-        elif float(self._motor_data["Current"]) < -10000:
+        elif float(motor_current) < -10000:
             logger.error(
                 "motor is over current, please check the gripper motor status, if the red light is on, please power off and restart"
             )
@@ -331,7 +335,7 @@ class PikaGripper(Robot):
                 )
             else:
                 logger.warning(
-                    "motor is not in normal control mode, current={}", self._motor_data["Current"]
+                    "motor is not in normal control mode, current={}", motor_current
                 )
 
     def _set_motor_torque(self, current: float = 2.0) -> bool:

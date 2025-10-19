@@ -8,13 +8,19 @@ import math
 import glob
 import json
 import queue
+import os
 import copy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from loguru import logger
 from mini_ros.common.device import Robot, RobotState, RobotAction
 from mini_ros.common.error import RobotExecuteError
 from mini_ros.utils.time_util import TimeUtil
+
+root_path = os.path.dirname(os.path.abspath(__file__))
+root_path = os.path.join(root_path, "../../../..")
+import sys
+sys.path.append(root_path)
 
 from third_party.marvin_sdk.fx_robot import Marvin_Robot
 from third_party.marvin_sdk.structure_data import DCSS
@@ -26,13 +32,23 @@ class MarvinRobotConfig:
     port: str = "192.168.1.190"
     baudrate: int = 115200
     timeout: float = 1.0
-    acc_ratio: int = 100
-    vel_ratio: int = 100
+    acc_ratio: int = 10
+    vel_ratio: int = 10
     control_mode: str = "impedance"
-    dynamic_params: list = [[0.715, -6.0, 43.0, 87.0, 0.001, 0.0, 0.0, -0.002, 0.0, 0.005],
-                            [0.715, 6.0, -43.0, 87.0, 0.001, 0.0, 0.0, -0.002, 0.0, 0.005]]
-    default_joint_pos: list = [[90.0, -70.0, -90.0, -90.0, 0.0, 0.0, 0.0],
-                               [-90.0, -70.0, 90.0, -90.0, 0.0, 0.0, 0.0]]
+    # # New end-effector
+    # dynamic_params: list = field(default_factory=lambda: [
+    #     [0.715, -6.0, 43.0, 87.0, 0.001, 0.0, 0.0, -0.002, 0.0, 0.005],
+    #     [0.715, 6.0, -43.0, 87.0, 0.001, 0.0, 0.0, -0.002, 0.0, 0.005]
+    # ])
+    # Old end-effector
+    dynamic_params: list = field(default_factory=lambda: [
+        [0.92, -3.365, 35.458, 75.8, -0.00106, 0.0, 0.0, -0.0054, 0.0, 0.0042],
+        [0.92, 7.218, -39.120, 79.375, -0.000487, 0.0,  0.0, -0.00105, 0.0, 0.000997]
+    ])
+    default_joint_pos: list = field(default_factory=lambda: [
+        [90.0, -70.0, -90.0, -90.0, 0.0, 0.0, 0.0],
+        [-90.0, -70.0, 90.0, -90.0, 0.0, 0.0, 0.0]
+    ])
 
 
 class MarvinRobot(Robot):
@@ -53,7 +69,7 @@ class MarvinRobot(Robot):
     def initialize(self):
         self.robot = Marvin_Robot()
         self.robot.connect(self.port)
-        time.sleep(0.25)
+        time.sleep(1.0)
 
     def start(self):
         self._launch_robot()
@@ -91,8 +107,8 @@ class MarvinRobot(Robot):
         return RobotState(
             joint_positions=np.concatenate([outputs[0]["fb_joint_pos"], outputs[1]["fb_joint_pos"]]),
             joint_velocities=np.concatenate([outputs[0]["fb_joint_vel"], outputs[1]["fb_joint_vel"]]),
-            joint_efforts=np.concatenate([outputs[0]["fb_joint_torque"], outputs[1]["fb_joint_torque"]]),
-            # end_effector_positions=np.concatenate([outputs[0]["fb_ee_pos"], outputs[1]["fb_ee_pos"]]),
+            # joint_efforts=np.concatenate([outputs[0]["fb_joint_torque"], outputs[1]["fb_joint_torque"]]),
+            end_effector_positions=np.concatenate([outputs[0]["fb_joint_posE"], outputs[1]["fb_joint_posE"]]),
         )
 
     def apply_action(self, action: RobotAction) -> RobotAction:
@@ -173,6 +189,7 @@ class MarvinRobot(Robot):
         elif mode == "impedance":
             if self.mode == "drag":
                 self._unset_drag_mode()
+            self._set_impedance_mode()
         elif mode == "position":
             if self.mode == "drag":
                 self._unset_drag_mode()
