@@ -122,22 +122,23 @@ class PikaGripper(Robot):
                         json_data = self._find_json()
                     except Exception as e:
                         continue
-                    if json_data and "motor" in json_data and "motorstatus" in json_data:
+                    if json_data and "motor" in json_data and ("Position" in json_data["motor"]) and ("Current" in json_data["motor"]):
                         motor_data = json_data["motor"]
-                        motor_status = json_data["motorstatus"]
+                        angle = float(motor_data["Position"])
+                        current = float(motor_data["Current"])
+                        # motor_status = json_data["motorstatus"]
                         timestamp = TimeUtil.now().timestamp()
                         break
                     # Clear the buffer if it is too long
                     if len(self._buffer) > 2000:
                         self._buffer = ""
                 # Handover control
-                time.sleep(0.001)
+                time.sleep(0.0001)
             except Exception as e:
                 logger.error("Error getting data: {}", e)
-        angle = float(motor_data["Position"])
         # Update current
         with self.data_guard:
-            self._motor_current = motor_data["Current"]
+            self._motor_current = current
         gripper_width = (self._get_distance(angle) - self._get_distance(0)) * 2
         gripper_width = np.clip(gripper_width, 0, PIKA_GRIPPER_WIDTH)
         gripper_width = gripper_width / PIKA_GRIPPER_WIDTH  # (0~1)
