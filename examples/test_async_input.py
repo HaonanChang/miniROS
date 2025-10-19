@@ -3,7 +3,7 @@ import yaml
 import asyncio
 from loguru import logger
 from typing import Dict, Any, List
-from mini_ros.inputs.async_input import AsyncInput
+from mini_ros.wrapper.async_input import AsyncInput
 from mini_ros.utils.time_util import TimeUtil
 from mini_ros.common.device import Reader, motor_config_from_json
 
@@ -42,11 +42,11 @@ def get_reader(reader_type: str, include_names: List[str] = []):
         joint_config = motor_config_from_json(joint_config, include_names=include_names)
     return reader, joint_config
 
+
 async def test_async_input(readers: Dict[str, Reader], joint_configs: Dict[str, Any], polling_rate: Dict[str, float]):
     async_input = AsyncInput(readers, joint_configs, polling_rate=polling_rate)
     await async_input.initialize()
     await async_input.start()
-    await async_input.start_record()
     for i in range(500):
         logger.info(f"Reading {i} times")
         now = TimeUtil.now()

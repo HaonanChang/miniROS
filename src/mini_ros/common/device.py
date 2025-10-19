@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List
-from mini_ros.utils.async_util import AsyncUtil
 from dataclasses import dataclass
 import numpy as np
+from mini_ros.common.state import RobotState, RobotAction
 
 
 ############################## Device Base Class ##############################
@@ -34,6 +34,65 @@ class Reader(ABC):
         pass
 
 
+class Robot(ABC):
+    """
+    Base class for all robots.
+    """
+    name: str
+
+    ###################### Required Methods ######################
+    @abstractmethod
+    def initialize(self, driver_config: Any):
+        pass
+
+    @abstractmethod
+    def get_state(self, timeout: float = 1.0) -> RobotState:
+        # State can be hold in a pulling thread
+        pass
+
+    @abstractmethod
+    def apply_action(self, action: RobotAction):
+        pass
+
+    @abstractmethod
+    def start(self):
+        pass
+
+    @abstractmethod
+    def stop(self):
+        pass
+
+    @abstractmethod
+    def reboot(self):
+        pass
+
+    ###################### Optional Methods ######################
+    def set_safe_speed(self):
+        """
+        [Optional]
+        Set robot to safe speed.
+        """
+        pass
+
+    def set_normal_speed(self):
+        """
+        [Optional]
+        Set robot to normal speed.
+        """
+        pass
+
+    def switch_mode(self, mode: str):
+        """
+        [Optional]
+        Switch robot between different modes.
+        """
+        pass
+
+    @property
+    def num_dof(self) -> int:
+        return 0
+
+
 class Streamer(ABC):
     """
     Base class for all stream drivers. Stream driver has a long-running process and perform processing in callback.
@@ -59,6 +118,7 @@ class Streamer(ABC):
     @abstractmethod
     def on_stream_stopped(self):
         pass
+
 
 ################################# Motor Device #################################
 @dataclass

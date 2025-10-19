@@ -193,7 +193,6 @@ class FeetechReader(Reader):
             port_handler.closePort()
 
 
-
 if __name__ == "__main__":
     root_dir = os.path.dirname(os.path.abspath(__file__))
     joint_map_file = os.path.join(root_dir, "..", "assets", "gellos", "joint_map_feetch.yaml")

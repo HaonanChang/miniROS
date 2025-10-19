@@ -12,7 +12,7 @@ from loguru import logger
 from mini_ros.utils.rate_limiter import RateLimiter
 from mini_ros.utils.async_util import AsyncUtil
 from mini_ros.utils.time_util import TimeUtil
-from mini_ros.common.state import InputDeviceState
+from mini_ros.common.state import InputDeviceState, TimedData
 from mini_ros.common.device import Device, Reader
 
 DEBUG_ASYNC_INPUT = True
@@ -20,7 +20,7 @@ DEBUG_ASYNC_INPUT = True
 
 class AsyncInput(Device):
     """
-    AsyncIO Wrapper for InputDevice. Support multiple drivers.
+    AsyncIO Wrapper for InputDevice. Support multiple readers.
     State:
         INIT -> OPEN -> READY -> RECORDING -> READY -> RECORDING -> ... -> STOPPED
     
@@ -33,10 +33,10 @@ class AsyncInput(Device):
         """
 
         super().__init__(f"{'&'.join(readers.keys())}")
-        assert len(readers) == len(reader_configs), "Number of drivers and driver configs must be the same"
+        assert len(readers) == len(reader_configs), "Number of readers and reader configs must be the same"
         self.readers: Dict[str, Reader] = readers
         self.reader_configs: Dict[str, Any] = reader_configs
-        self.reader_limiters: Dict[str, RateLimiter] = {driver_name: RateLimiter(polling_rate[driver_name]) for driver_name in readers.keys()}
+        self.read_limiters: Dict[str, RateLimiter] = {driver_name: RateLimiter(polling_rate[driver_name]) for driver_name in readers.keys()}
 
         # Internal state
         self.state: InputDeviceState = InputDeviceState.INIT
@@ -66,32 +66,6 @@ class AsyncInput(Device):
         for driver_name, reader_config in self.reader_configs.items():
             await AsyncUtil.run_blocking_as_async(self.readers[driver_name].initialize, reader_config)
         await self.set_state(InputDeviceState.OPEN)
-    
-    async def start_record(self):
-        """
-        Start recording the input device
-        """
-
-        await self.wait_for_state(InputDeviceState.READY)
-        logger.info(self.__class__.__name__, "Start record")
-        await self.set_state(InputDeviceState.RECORDING)
-
-    async def stop_record(self):
-        """
-        Stop recording the input device
-        """
-
-        await self.wait_for_state(InputDeviceState.RECORDING)
-        logger.info(self.__class__.__name__, "Stop record")
-        await self.set_state(InputDeviceState.READY)
-
-    async def discard_data(self):
-        """
-        Discard the data from the input device
-        """
-        await self.wait_for_state(InputDeviceState.RECORDING)
-        logger.info(self.__class__.__name__, "Stop record & Discard data")
-        await self.set_state(InputDeviceState.READY)
 
     async def start(self) -> None:
         """
@@ -105,7 +79,7 @@ class AsyncInput(Device):
         for driver_name in self.readers.keys():
             self._polling_read_tasks[driver_name].add_done_callback(lambda _: self._input_queues[driver_name].task_done())
         await TimeUtil.sleep_by_ms(500)  # Wait for the reading loop to start
-        await self.set_state(InputDeviceState.READY)
+        await self.set_state(InputDeviceState.RUNNING)
         
     async def add_listener(
         self, driver_name: str, listener: Callable[..., Coroutine[Any, Any, Any]]
@@ -116,7 +90,7 @@ class AsyncInput(Device):
 
         self._event_listeners[driver_name].add(listener)
 
-    async def get_state(self, driver_name: str):
+    async def get_state(self, driver_name: str) -> TimedData:
         """
         Reading from the device. Limit reading rate by the driver rate.
 
@@ -126,22 +100,19 @@ class AsyncInput(Device):
             Any (You should know and override the type of this return value): The input value from the Polling device
         """
 
-        await self.wait_for_state(InputDeviceState.RECORDING)
+        await self.wait_for_state(InputDeviceState.RUNNING)
 
-        limiter = self.reader_limiters[driver_name]
-        await limiter.wait_for_tick("AsyncInput_get_state")
         # Handover wait for the value to be available to the reading loop
-        val = await self._input_queues[driver_name].get()  # Block until a value is available
-        await limiter.unset_busy("AsyncInput_get_state")
+        timed_data = await self._input_queues[driver_name].get()  # Block until a value is available
 
-        return val
+        return timed_data
 
     async def _reading_loop(self, driver_name: str) -> None:
         """
         Polling from the driver ASAP.
         """
 
-        limiter = self.reader_limiters[driver_name]
+        limiter = self.read_limiters[driver_name]
 
         while True:
             async with self.condition:
@@ -152,22 +123,28 @@ class AsyncInput(Device):
 
             start_time = TimeUtil.now()
             try:
+                limiter = self.read_limiters[driver_name]
+                await limiter.wait_for_tick("AsyncInput_get_state")
+                
                 val = await AsyncUtil.run_blocking_as_async(self.readers[driver_name].get_state)
-
                 # Write the input value to shared container
                 # None generally means Communication Failure, ignore it
                 if val is not None:
                     if self._input_queues[driver_name].full():
                         self._input_queues[driver_name].get_nowait()  # Discard the oldest value
                    
-                    self._input_queues[driver_name].put_nowait(val)
+                    self._input_queues[driver_name].put_nowait(TimedData(data=val, timestamp=TimeUtil.now().timestamp()))
                     # Broadcast the new value to all listeners
                     for listener in self._event_listeners[driver_name]:
                         AsyncUtil.detach_coroutine(listener(val))
+                
+                await limiter.unset_busy("AsyncInput_get_state")
 
             except asyncio.CancelledError:
+                await limiter.unset_busy("AsyncInput_get_state")
                 break  # Task was cancelled by some caller up in the call stack, exit
             except ReadError as e:
+                await limiter.unset_busy("AsyncInput_get_state")
                 logger.error(f"Error reading from {driver_name}: {e}")
                 raise e
 
