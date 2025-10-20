@@ -1,0 +1,8 @@
+# https://github.com/mikedh/trimesh
+
+newmtl material_0
+Ka 0.200000 0.200000 0.200000    # Dark gray ambient
+Kd 0.200000 0.200000 0.200000    # Dark gray diffuse (main color)
+Ks 0.200000 0.200000 0.200000    # Dark gray specular
+Ns 1.000000                      # Low shininess
+map_Kd link8_texture_0.png

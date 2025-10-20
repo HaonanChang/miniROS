@@ -1,0 +1,16 @@
+<mujoco model="dual_piper_block_pickup_scene">
+    <option integrator="implicit" timestep="0.005" />
+    <include file="dual_piper_table_scene.xml" />
+    <worldbody>
+        <!-- Add single red block for manipulation -->
+        <body name="red_block" pos="0 -0.2 0">
+            <joint type="free" />
+            <geom name="red_block_geom" type="box" size="0.025 0.025 0.025" material="block_red"
+                mass="0.05" friction="1 0.01 0.01" solref="0.01 1" solimp="0.9 0.95 0.001" />
+            <site name="red_block_site" pos="0 0 0" size="0.005" rgba="1 1 1 1" />
+        </body>
+
+        <!-- Single target location -->
+        <site name="target_red" pos="0 0.2 0.025" size="0.03" rgba="0.8 0.1 0.1 0.3" />
+    </worldbody>
+</mujoco> 

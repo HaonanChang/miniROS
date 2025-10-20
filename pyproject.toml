@@ -27,6 +27,12 @@ dependencies = [
     "feetech-servo-sdk",
     "pyyaml>=6.0.2",
     "record3d",
+    "gymnasium",
+    "mujoco",
+    "mediapy",
+    "scipy",
+    "urchin",
+    "tqdm",
 ]
 
 [tool.hatch.build.targets.wheel]

@@ -1,0 +1,84 @@
+r_shoulder_pitch:
+  port: /dev/ttyUSB0
+  id: 1
+  zero_point: 10.37109375
+  sign: 1
+  gain: 0.017453
+r_shoulder_roll:
+  port: /dev/ttyUSB0
+  id: 2
+  zero_point: 260.244140625
+  sign: -1
+  gain: 0.017453
+r_shoulder_yaw:
+  port: /dev/ttyUSB0
+  id: 3
+  zero_point: 99.84375
+  sign: 1
+  gain: 0.017453
+r_elbow:
+  port: /dev/ttyUSB0
+  id: 4
+  zero_point: 362.900390625
+  sign: -1
+  gain: 0.017453
+r_wrist_roll:
+  port: /dev/ttyUSB0
+  id: 5
+  zero_point: 187.3828125
+  sign: 1
+  gain: 0.017453
+r_wrist_pitch:
+  port: /dev/ttyUSB0
+  id: 6
+  zero_point: 274.482421875
+  sign: 1
+  gain: 0.017453
+r_wrist_yaw:
+  port: /dev/ttyUSB0
+  id: 7
+  zero_point: 172.529296875
+  sign: -1
+  gain: 0.017453
+l_shoulder_pitch:
+  port: /dev/ttyUSB0
+  id: 10
+  zero_point: 372.392578125
+  sign: 1
+  gain: 0.017453
+l_shoulder_roll:
+  port: /dev/ttyUSB0
+  id: 11
+  zero_point: 100.8984375
+  sign: 1
+  gain: 0.017453
+l_shoulder_yaw:
+  port: /dev/ttyUSB0
+  id: 12
+  zero_point: -4.833984375
+  sign: 1
+  gain: 0.017453
+l_elbow:
+  port: /dev/ttyUSB0
+  id: 13
+  zero_point: 79.716796875
+  sign: 1
+  gain: 0.017453
+l_wrist_roll:
+  port: /dev/ttyUSB0
+  id: 14
+  zero_point: 98.701171875
+  sign: 1
+  gain: 0.017453
+l_wrist_pitch:
+  port: /dev/ttyUSB0
+  id: 15
+  zero_point: 166.46484375
+  sign: -1
+  gain: 0.017453
+l_wrist_yaw:
+  port: /dev/ttyUSB0
+  id: 16
+  zero_point: 358.06640625
+  sign: -1
+  gain: 0.017453
