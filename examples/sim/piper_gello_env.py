@@ -7,22 +7,22 @@ import signal
 import sys
 import numpy as np
 import yaml
-from mini_ros.sim.mjx_envs.exo_g1_env import ExoG1Env
-from mini_ros.devices.motors.encoder import EncoderReader
+from mini_ros.sim.mjx_envs.piper_env import PiperEnv
+from mini_ros.devices.motors.dynamixel import DynamixelReader
 from mini_ros.common.device import motor_config_from_json
-
 
 
 if __name__ == "__main__":
     root_dir = os.path.dirname(os.path.abspath(__file__))
-    joint_map_file = f"{root_dir}/../../assets/gellos/joint_map_encoder.yaml"
+    joint_map_file = f"{root_dir}/../../assets/gellos/joint_map_dynamixel.yaml"
     with open(joint_map_file, "r") as f:
         joint_config = yaml.load(f, Loader=yaml.FullLoader)
     motor_config = motor_config_from_json(joint_config)
-
-    gello = EncoderReader()
+    
+    gello = DynamixelReader()
     gello.initialize(motor_config)
-    env = ExoG1Env(control_base=False)
+
+    env = PiperEnv()
     env.reset()
     step_count = 0
     start_time = time.time()    
