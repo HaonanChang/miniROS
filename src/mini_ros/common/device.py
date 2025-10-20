@@ -141,7 +141,7 @@ class MotorConfig:
     ref_point: float = 0.0
     upper_limit: float = np.pi * 2
     lower_limit: float = -np.pi * 2
-    is_rot: bool = False
+    is_rot: bool = True
 
 
 def motor_config_from_json(config_json: Dict[str, Any], include_names: List[str] = []) -> List[MotorConfig]:
@@ -156,7 +156,7 @@ def motor_config_from_json(config_json: Dict[str, Any], include_names: List[str]
     return joint_config
 
 
-class MotorDevice(ABC):
+class MotorDevice(Reader):
     """
     Motor driver interface (Blocking version).
     Implement this method.
@@ -200,6 +200,10 @@ class MotorDevice(ABC):
         # Apply sign and gain corrections
         corrected_read = sign * corrected_read * scale + ref_point
         
+        if is_rot:
+            # Round
+            corrected_read = np.mod(corrected_read + np.pi, np.pi * 2) - np.pi
+
         # Clip by limit
         corrected_read = np.clip(corrected_read, lower_limit, upper_limit)
         

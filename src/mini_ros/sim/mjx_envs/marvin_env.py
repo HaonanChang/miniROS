@@ -83,9 +83,9 @@ class MarvinEnv(gym.Env):
             # Extract left and right arm actions
             left_arm_action = action[:7]
             right_arm_action = action[8:15]
-            # Project action
-            left_arm_action = self._joint_project_clip(left_arm_action, self.is_new_version)
-            right_arm_action = self._joint_project_clip(right_arm_action, self.is_new_version)
+            # # Project action
+            # left_arm_action = self._joint_project_clip(left_arm_action, self.is_new_version)
+            # right_arm_action = self._joint_project_clip(right_arm_action, self.is_new_version)
             self.data.qpos[:7] = left_arm_action
             self.data.qpos[7:] = right_arm_action
         elif action.shape[-1] == 14:

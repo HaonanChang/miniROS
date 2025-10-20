@@ -25,12 +25,12 @@ class MarvinGelloEnv(MarvinEnv):
         # Add forward kinematics
         root_dir = os.path.dirname(os.path.abspath(__file__))
         self.left_fk = ForwardKinematics(
-            urdf_path=f"{root_dir}/../../assets/tj_arm/urdf/Marvin-BiArm-Baseless.urdf",
+            urdf_path=f"{root_dir}/../../../../assets/tj_arm/urdf/Marvin-BiArm-Baseless.urdf",
             base_link="World",
             ee_link="Link7_L"
         )
         self.right_fk = ForwardKinematics(
-            urdf_path=f"{root_dir}/../../assets/tj_arm/urdf/Marvin-BiArm-Baseless.urdf",
+            urdf_path=f"{root_dir}/../../../../assets/tj_arm/urdf/Marvin-BiArm-Baseless.urdf",
             base_link="World",
             ee_link="Link7_R"
         )
@@ -66,7 +66,7 @@ class MarvinGelloEnv(MarvinEnv):
 
 if __name__ == "__main__":
     root_dir = os.path.dirname(os.path.abspath(__file__))
-    joint_map_file = f"{root_dir}/../../assets/gellos/joint_map_feetch_calib.yaml"
+    joint_map_file = f"{root_dir}/../../../../assets/gellos/joint_map_feetech.yaml"
     with open(joint_map_file, "r") as f:
         joint_config = yaml.load(f, Loader=yaml.FullLoader)
     motor_config = motor_config_from_json(joint_config)
