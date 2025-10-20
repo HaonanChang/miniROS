@@ -13,18 +13,27 @@ class ExoG1Env(gym.Env):
     """
     Exoskeleton for G1 Sim/RL Env
     """
-    def __init__(self):
+    def __init__(self, control_base: bool = False):
         super().__init__()
         
         root_dir = os.path.dirname(os.path.abspath(__file__))
-        xml_path = f"{root_dir}/../../../../assets/exo_g1/G1.xml"
+        if not control_base:    
+            xml_path = f"{root_dir}/../../../../assets/exo_g1/G1.xml"
+        else:
+            xml_path = f"{root_dir}/../../../../assets/exo_g1/G1_float.xml"
         self.model = mujoco.MjModel.from_xml_path(str(xml_path))
         self.data  = mujoco.MjData(self.model)
         
         self.action_space = spaces.Box(-1., 1., shape=(14,), dtype=np.float32)
-        obs_dim = 14 + 14 + 12  # joint_pos + joint_vel + imu_data
-        self.observation_space = spaces.Box(-np.inf, np.inf, (obs_dim,), np.float32)
-        self.num_dof = 14
+        self.control_base = control_base
+        if not control_base:
+            obs_dim = 14 + 14 + 12  # joint_pos + joint_vel + imu_data
+            self.observation_space = spaces.Box(-np.inf, np.inf, (obs_dim,), np.float32)
+            self.num_dof = 14
+        else:
+            obs_dim = 14 + 14 + 12  # base_pos + joint_pos + joint_vel + imu_data
+            self.observation_space = spaces.Box(-np.inf, np.inf, (obs_dim,), np.float32)
+            self.num_dof = 7 + 14
 
         # Initialize viewer and exit handling
         self.viewer = None
@@ -43,7 +52,11 @@ class ExoG1Env(gym.Env):
         return self._get_obs(), {}
 
     def step(self, action):
-        self.data.qpos[0:14] = action
+        if not self.control_base:
+            self.data.qpos[0:14] = action
+        else:
+            self.data.qpos[0:7] = action[0:7]
+            self.data.qpos[7:21] = action[7:]
         # 3) Recompute body positions (no dynamics)
         mujoco.mj_forward(self.model, self.data)
         
@@ -57,8 +70,12 @@ class ExoG1Env(gym.Env):
 
     def _get_obs(self):
         # Joint positions and velocities
-        joint_pos = self.data.qpos[0:14]
-        joint_vel = self.data.qvel[0:14]
+        if not self.control_base:
+            joint_pos = self.data.qpos[0:14]
+            joint_vel = self.data.qvel[0:14]
+        else:
+            joint_pos = self.data.qpos[7:21]
+            joint_vel = self.data.qvel[7:21]
         
         # IMU data from sensor
         imu_linvel = self.data.sensordata[1:4]    # local linear velocity

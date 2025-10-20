@@ -2,8 +2,10 @@
 
 import numpy as np
 from urchin import URDF
+from scipy.spatial.transform import Rotation as R
 
 
+###################################### FK #######################################
 def skew_symmetric_matrix(axis):
     """Generate skew-symmetric matrix for rotation axis"""
     K = np.zeros((3, 3))
@@ -121,3 +123,21 @@ class ForwardKinematics:
             T = T @ fixed_tf @ joint_tf
 
         return T
+
+
+###################################### Pose #######################################
+
+def compute_relative_pose(pose_p, pose_c):
+    """
+    Compute the relative pose between two poses: pose_c (child) in pose_p (parent) frame.
+    Pose is in the form of [x, y, z, qw, qx, qy, qz]
+    """
+    pose_mat_p = np.eye(4)
+    pose_mat_p[:3, :3] = R.from_quat(pose_p[3:], scalar_first=True).as_matrix()
+    pose_mat_p[:3, 3] = pose_p[:3]
+    pose_mat_c = np.eye(4)
+    pose_mat_c[:3, :3] = R.from_quat(pose_c[3:], scalar_first=True).as_matrix()
+    pose_mat_c[:3, 3] = pose_c[:3]
+    
+    pose_mat_c_p = np.linalg.inv(pose_mat_p) @ pose_mat_c
+    return np.concatenate([pose_mat_c_p[:3, 3], R.from_matrix(pose_mat_c_p[:3, :3]).as_quat(scalar_first=True)])

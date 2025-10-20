@@ -210,3 +210,18 @@ class MotorReader(Reader):
         corrected_read = np.clip(corrected_read, lower_limit, upper_limit)
         
         return corrected_read
+
+
+################################# Tracker Device #################################
+class Tracker(Reader):
+    """
+    Base class for all 6D pose trackers.
+    """
+    name: str
+
+    @abstractmethod
+    def reanchor(self):
+        """
+        Reanchor the tracker to the current pose.
+        """
+        pass

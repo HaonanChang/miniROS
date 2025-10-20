@@ -10,7 +10,7 @@ from mini_ros.devices.motors.feetech import FeetechReader
 from mini_ros.devices.motors.dynamixel import DynamixelReader
 from mini_ros.devices.motors.mock_motor import MockMotorReader
 from mini_ros.devices.motors.encoder import EncoderReader
-from mini_ros.devices.trackers.record3d_tracker import Record3DTrackerReader
+from mini_ros.devices.trackers.record3d_tracker import Record3DTracker
 from loguru import logger
 import yaml
 
@@ -30,7 +30,7 @@ def get_reader(reader_type: str):
         reader = EncoderReader()
         joint_config_file = os.path.join(root_dir, "assets/gellos/joint_map_encoder.yaml")
     elif reader_type == "record3d":
-        reader = Record3DTrackerReader()
+        reader = Record3DTracker()
         joint_config_file = os.path.join(root_dir, "assets/gellos/joint_map_encoder.yaml")
         joint_config_file = None
     else:

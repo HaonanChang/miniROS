@@ -27,8 +27,8 @@ def get_reader(reader_type: str, include_names: List[str] = []):
         reader = EncoderReader()
         joint_config_file = os.path.join(root_dir, "assets/gellos/joint_map_encoder.yaml")
     elif reader_type == "record3d":
-        from mini_ros.devices.trackers.record3d_tracker import Record3DTrackerReader
-        reader = Record3DTrackerReader()
+        from mini_ros.devices.trackers.record3d_tracker import Record3DTracker
+        reader = Record3DTracker()
         joint_config_file = os.path.join(root_dir, "assets/gellos/joint_map_encoder.yaml")
         joint_config_file = None
     else:

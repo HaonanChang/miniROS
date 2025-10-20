@@ -21,8 +21,8 @@ class MarvinEnv(gym.Env):
 
         # Load the marvin model
         root_dir = os.path.dirname(os.path.abspath(__file__))
-        xml_path = f"{root_dir}/../../../../assets/tj_arm/urdf/Marvin-BiArm-Baseless.xml"
-        self.model = mujoco.MjModel.from_xml_path(str(xml_path))
+        self.xml_path = f"{root_dir}/../../../../assets/tj_arm/urdf/Marvin-BiArm-Baseless.xml"
+        self.model = mujoco.MjModel.from_xml_path(str(self.xml_path))
         self.data = mujoco.MjData(self.model)
 
         self.action_range = np.copy(self.model.jnt_range)

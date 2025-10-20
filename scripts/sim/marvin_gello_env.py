@@ -23,14 +23,13 @@ class MarvinGelloEnv(MarvinEnv):
             raise ValueError(f"Invalid gello type: {gello_type}")
         self.gello.initialize(joint_config)
         # Add forward kinematics
-        root_dir = os.path.dirname(os.path.abspath(__file__))
         self.left_fk = ForwardKinematics(
-            urdf_path=f"{root_dir}/../../../../assets/tj_arm/urdf/Marvin-BiArm-Baseless.urdf",
+            urdf_path=self.xml_path.replace(".xml", ".urdf"),
             base_link="World",
             ee_link="Link7_L"
         )
         self.right_fk = ForwardKinematics(
-            urdf_path=f"{root_dir}/../../../../assets/tj_arm/urdf/Marvin-BiArm-Baseless.urdf",
+            urdf_path=self.xml_path.replace(".xml", ".urdf"),
             base_link="World",
             ee_link="Link7_R"
         )

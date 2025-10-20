@@ -6,11 +6,12 @@ import numpy as np
 from record3d import Record3DStream
 import cv2
 from threading import Event
-from mini_ros.common.device import Reader
+from mini_ros.common.device import Tracker
 from typing import Any
+from mini_ros.utils.robo_util import compute_relative_pose
 
 
-class Record3DTrackerReader(Reader):
+class Record3DTracker(Tracker):
     """
     We use Record3D as a tracker device.
     """
@@ -19,7 +20,7 @@ class Record3DTrackerReader(Reader):
     def __init__(self):
         pass
 
-    def initialize(self, driver_config: Any = None):
+    def initialize(self, reader_config: Any = None):
         self.event = Event()
         self.session = None
         self.DEVICE_TYPE__TRUEDEPTH = 0
@@ -42,6 +43,10 @@ class Record3DTrackerReader(Reader):
         self.session.on_new_frame = self._on_new_frame
         self.session.on_stream_stopped = self._on_stream_stopped
         self.session.connect(dev)  # Initiate connection and start capturing
+        self.anchor_pose = np.array([0, 0, 0, 1, 0, 0, 0])
+
+    def reanchor(self):
+        self.anchor_pose = self.get_state()
 
     def _on_new_frame(self):
         """
@@ -61,4 +66,7 @@ class Record3DTrackerReader(Reader):
         camera_pose = self.session.get_camera_pose()  # Quaternion + world position (accessible via camera_pose.[x,y,z,qw,qx,qy,qz])
 
         self.event.clear()
-        return np.array([camera_pose.tx, camera_pose.ty, camera_pose.tz, camera_pose.qw, camera_pose.qx, camera_pose.qy, camera_pose.qz])
+        cur_pose = np.array([camera_pose.tx, camera_pose.ty, camera_pose.tz, camera_pose.qw, camera_pose.qx, camera_pose.qy, camera_pose.qz])
+        # Relative to anchor pose
+        rel_pose = compute_relative_pose(self.anchor_pose, cur_pose)
+        return rel_pose

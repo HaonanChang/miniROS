@@ -7,43 +7,29 @@ import signal
 import sys
 import numpy as np
 import yaml
-from mini_ros.sim.mjx_envs.exo_g1_env import ExoG1Env
-from mini_ros.devices.motors.encoder import EncoderReader
+from mini_ros.sim.mjx_envs.piper_env import PiperEnv
+from mini_ros.devices.motors.dynamixel import DynamixelReader
 from mini_ros.common.device import motor_config_from_json
 
-
-class ExoG1GelloEnv(ExoG1Env):
-    """
-    Exoskeleton for G1 Sim/RL Env
-    """
-    def __init__(self, gello_type="encoder", joint_config=None):
-        super().__init__()
-        
-        if gello_type == "encoder":
-            self.gello = EncoderReader()
-        else:
-            raise ValueError(f"Invalid gello type: {gello_type}")
-        self.gello.initialize(joint_config)
-
-    def step(self, action):
-        action = self.gello.get_state()
-        super().step(action)
 
 
 if __name__ == "__main__":
     root_dir = os.path.dirname(os.path.abspath(__file__))
-    joint_map_file = f"{root_dir}/../../../../assets/gellos/joint_map_encoder.yaml"
+    joint_map_file = f"{root_dir}/../../assets/gellos/joint_map_dynamixel.yaml"
     with open(joint_map_file, "r") as f:
         joint_config = yaml.load(f, Loader=yaml.FullLoader)
     motor_config = motor_config_from_json(joint_config)
     
-    env = ExoG1GelloEnv(gello_type="encoder", joint_config=motor_config)
+    gello = DynamixelReader()
+    gello.initialize(motor_config)
+
+    env = PiperEnv()
     env.reset()
     step_count = 0
     start_time = time.time()    
     while not env.should_exit:
         # Randomize action
-        action = np.random.uniform(-1.0, 1.0, env.num_dof)
+        action = gello.get_state()
         env.step(action)
         env.render()
         step_count += 1
