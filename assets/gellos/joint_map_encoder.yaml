@@ -1,176 +1,91 @@
 joint_1:
-  home_point: 1.5707963267948966
-  id: 8
-  lower_limit: -3.141592653589793
-  motor_type: Left
-  port: /dev/ttyACM0
-  ref_point: 1.5707963267948966
-  scale: 1.0
-  sign: -1
-  upper_limit: 3.141592653589793
-  zero_point: 1.7502720789775166
-joint_10:
-  home_point: -70
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_b0c389d7a80aee11a97a3e02f59e3369-if00-port0
   id: 1
-  lower_limit: -3.141592653589793
-  motor_type: Right
-  port: /dev/ttyACM0
-  ref_point: -1.5707963267948966
-  scale: 1.0
-  sign: 1
-  upper_limit: 3.141592653589793
-  zero_point: 5.221670601962723
-joint_11:
-  home_point: 1.5707963267948966
-  id: 2
-  lower_limit: -3.141592653589793
-  motor_type: Right
-  port: /dev/ttyACM0
-  ref_point: 0
-  scale: 1.0
   sign: -1
-  upper_limit: 3.141592653589793
-  zero_point: 3.3026606363177855
-joint_12:
-  home_point: -1.5707963267948966
-  id: 3
-  lower_limit: -3.141592653589793
-  motor_type: Right
-  port: /dev/ttyACM0
-  ref_point: 0
-  scale: 1.0
-  sign: -1
-  upper_limit: 3.141592653589793
-  zero_point: 1.8254371375839131
-joint_13:
-  home_point: -1.5707963267948966
-  id: 4
-  lower_limit: -3.141592653589793
-  motor_type: Right
-  port: /dev/ttyACM0
-  ref_point: 0
-  scale: 1.0
-  sign: -1
-  upper_limit: 3.141592653589793
-  zero_point: 2.402213913828914
-joint_14:
-  home_point: 0
-  id: 5
-  lower_limit: -1.0471975511965976
-  motor_type: Right
-  port: /dev/ttyACM0
-  ref_point: 0
-  scale: 1.0
-  sign: -1
-  upper_limit: 1.0471975511965976
-  zero_point: 0.944932165337555
-joint_15:
-  home_point: 0
-  id: 6
-  lower_limit: -1.0471975511965976
-  motor_type: Right
-  port: /dev/ttyACM0
-  ref_point: 0
-  scale: 1.0
-  sign: 1
-  upper_limit: 1.0471975511965976
-  zero_point: 1.9358837543116791
-joint_16:
-  home_point: 57.29577951308232
-  id: 7
-  lower_limit: -3.141592653589793
-  motor_type: Right
-  port: /dev/ttyACM0
-  ref_point: 57.29577951308232
-  scale: 1.909859317102744
-  sign: 1
-  upper_limit: 3.141592653589793
-  zero_point: 2.2027964114037806
+  zero_point: 4.591263130296284
+  motor_type: Left
 joint_2:
-  home_point: -70
-  id: 9
-  lower_limit: -3.141592653589793
-  motor_type: Left
-  port: /dev/ttyACM0
-  ref_point: -1.5707963267948966
-  scale: 1.0
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_b0c389d7a80aee11a97a3e02f59e3369-if00-port0
+  id: 2
   sign: -1
-  upper_limit: 3.141592653589793
-  zero_point: 3.6493402943799405
+  zero_point: 4.146378703962928
+  motor_type: Left
 joint_3:
-  home_point: -1.5707963267948966
-  id: 10
-  lower_limit: -3.141592653589793
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_b0c389d7a80aee11a97a3e02f59e3369-if00-port0
+  id: 3
+  sign: 1
+  zero_point: 4.445528137754757
   motor_type: Left
-  port: /dev/ttyACM0
-  ref_point: 0
-  scale: 1.0
-  sign: -1
-  upper_limit: 3.141592653589793
-  zero_point: 5.082078350265129
 joint_4:
-  home_point: -1.5707963267948966
-  id: 11
-  lower_limit: -3.141592653589793
-  motor_type: Left
-  port: /dev/ttyACM0
-  ref_point: 0
-  scale: 1.0
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_b0c389d7a80aee11a97a3e02f59e3369-if00-port0
+  id: 4
   sign: 1
-  upper_limit: 3.141592653589793
-  zero_point: 5.66959299202533
+  zero_point: 3.3026865435488695
+  motor_type: Left
 joint_5:
-  home_point: 1.5707963267948966
-  id: 12
-  lower_limit: -3.141592653589793
-  motor_type: Left
-  port: /dev/ttyACM0
-  ref_point: 0
-  scale: 1.0
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_b0c389d7a80aee11a97a3e02f59e3369-if00-port0
+  id: 5
   sign: -1
-  upper_limit: 3.141592653589793
-  zero_point: 4.08959278050312
+  zero_point: 4.323180557189954
+  motor_type: Left
 joint_6:
-  home_point: 0
-  id: 13
-  lower_limit: -1.0471975511965976
-  motor_type: Left
-  port: /dev/ttyACM0
-  ref_point: 0
-  scale: 1.0
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_b0c389d7a80aee11a97a3e02f59e3369-if00-port0
+  id: 6
   sign: 1
-  upper_limit: 1.0471975511965976
-  zero_point: 4.086524818927348
+  zero_point: 1.2671090369478832
+  motor_type: Left
 joint_7:
-  home_point: 0
-  id: 14
-  lower_limit: -1.0471975511965976
-  motor_type: Left
-  port: /dev/ttyACM0
-  ref_point: 0
-  scale: 1.0
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_b0c389d7a80aee11a97a3e02f59e3369-if00-port0
+  id: 7
   sign: 1
-  upper_limit: 1.0471975511965976
-  zero_point: 3.6600781598951397
-joint_8:
-  home_point: 57.29577951308232
-  id: 15
-  lower_limit: 0.0
+  zero_point: 3.630982975849003
   motor_type: Left
-  port: /dev/ttyACM0
-  ref_point: 57.29577951308232
-  scale: 1.909859317102744
-  sign: -1
-  upper_limit: 1.0
-  zero_point: 3.6662140830466825
 joint_9:
-  home_point: -1.5707963267948966
-  id: 0
-  lower_limit: -3.141592653589793
-  motor_type: Right
-  port: /dev/ttyACM0
-  ref_point: -1.5707963267948966
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_f6dfa010bf0aee11aa4d4b02f59e3369-if00-port0
+  id: 1
+  sign: 1
+  zero_point: 3.8901643697701607
   scale: 1.0
+  motor_type: Right
+joint_10:
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_f6dfa010bf0aee11aa4d4b02f59e3369-if00-port0
+  id: 2
   sign: -1
-  upper_limit: 3.141592653589793
-  zero_point: 1.8239031567960273
+  zero_point: 0.7658504757751119
+  scale: 1.0
+  motor_type: Right
+joint_11:
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_f6dfa010bf0aee11aa4d4b02f59e3369-if00-port0
+  id: 3
+  sign: 1
+  zero_point: 0.8651597102135892
+  scale: 1.0
+  motor_type: Right
+joint_12:
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_f6dfa010bf0aee11aa4d4b02f59e3369-if00-port0
+  id: 4
+  sign: -1
+  zero_point: 2.35165663413716
+  scale: 1.0
+  motor_type: Right
+joint_13:
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_f6dfa010bf0aee11aa4d4b02f59e3369-if00-port0
+  id: 5
+  sign: -1
+  zero_point: 3.017325210847797
+  scale: 1.0
+  motor_type: Right
+joint_14:
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_f6dfa010bf0aee11aa4d4b02f59e3369-if00-port0
+  id: 6
+  sign: -1
+  zero_point: 1.9481365110760707
+  scale: 1.0
+  motor_type: Right
+joint_15:
+  port: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_f6dfa010bf0aee11aa4d4b02f59e3369-if00-port0
+  id: 7
+  sign: 1
+  zero_point: 3.166201796042913
+  scale: 1.0
+  motor_type: Right

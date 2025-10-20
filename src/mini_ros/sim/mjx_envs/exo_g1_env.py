@@ -1,30 +1,38 @@
-import gymnasium as gym
+import os
+import time
+import signal
+import sys
 import numpy as np
+import gymnasium as gym
 from gymnasium import spaces
 import mujoco
-from mujoco.viewer import launch_passive
-from scipy.spatial.transform import Rotation as R
-import yaml
-import os
-import importlib.resources as pkg_resources
-from mini_ros.devices.motors.encoder import EncoderReader
+import mujoco.viewer
+
 
 class ExoG1Env(gym.Env):
+    """
+    Exoskeleton for G1 Sim/RL Env
+    """
     def __init__(self):
         super().__init__()
         
-        assets_path = pkg_resources.files("we_sim") / "assets"
-        xml_path = assets_path / "skeleton" / "G1.xml"
+        root_dir = os.path.dirname(os.path.abspath(__file__))
+        xml_path = f"{root_dir}/../../../../assets/exo_g1/G1.xml"
         self.model = mujoco.MjModel.from_xml_path(str(xml_path))
         self.data  = mujoco.MjData(self.model)
         
         self.action_space = spaces.Box(-1., 1., shape=(14,), dtype=np.float32)
         obs_dim = 14 + 14 + 12  # joint_pos + joint_vel + imu_data
         self.observation_space = spaces.Box(-np.inf, np.inf, (obs_dim,), np.float32)
-        
-        self.viewer = launch_passive(self.model, self.data,
-                                     show_left_ui=False,
-                                     show_right_ui=False)
+        self.num_dof = 14
+
+        # Initialize viewer and exit handling
+        self.viewer = None
+        self.should_exit = False
+
+        # Set up signal handlers for graceful exit
+        signal.signal(signal.SIGINT, self._signal_handler)
+        signal.signal(signal.SIGTERM, self._signal_handler)
 
     def reset(self, seed=None):
         super().reset(seed=seed)
@@ -66,37 +74,56 @@ class ExoG1Env(gym.Env):
         ]).astype(np.float32)
 
     def render(self):
-        # passive viewer already synced in step()
-        pass
+        if self.viewer is None:
+            self.viewer = mujoco.viewer.launch_passive(
+                model=self.model,
+                data=self.data,
+            )
+            # Access and set the viewer camera
+            self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_FREE
+            self.viewer.cam.lookat[:] = [0.0, 0, 0]
+            self.viewer.cam.distance = 2.0
+            self.viewer.cam.azimuth = -90
+            self.viewer.cam.elevation = -20
+            self.scene = self.viewer.user_scn
+        else:
+            self.viewer.sync()
+            
+        # Check if viewer was closed
+        if self.viewer is not None and hasattr(self.viewer, 'is_running'):
+            if not self.viewer.is_running():
+                self.should_exit = True
 
     def close(self):
         if self.viewer is not None:
             self.viewer.close()
             self.viewer = None
-        
-        # Close all encoder connections
-        for enc in self.broadcast_encoders.values():
-            try:
-                enc.close()
-            except:
-                pass
+    
+    def _signal_handler(self, signum, frame):
+        """Handle shutdown signals gracefully"""
+        print(f"\nReceived signal {signum}. Shutting down gracefully...")
+        self.should_exit = True
+        self.close()
+        sys.exit(0)
 
 
 if __name__ == "__main__":
-    import time
     env = ExoG1Env()
-    obs, _ = env.reset()
-    
-    print("G1 Skeleton Environment started")
-    print(f"Observation shape: {obs.shape}")
-    print(f"Action space: {env.action_space}")
-    print("Press Ctrl+C to exit...")
-    try:
-        while True:
-            obs, reward, done, truncated, info = env.step(None)
-            
+    env.reset()
+    step_count = 0
+    start_time = time.time()    
+    while not env.should_exit:
+        # Randomize action
+        action = np.random.uniform(-1.0, 1.0, env.num_dof)
+        env.step(action)
+        env.render()
+        step_count += 1
 
-    except KeyboardInterrupt:
-        print("\nShutting down...")
-    finally:
-        env.close() 
+        # Print periodic status updates
+        if step_count % 1000 == 0:
+            elapsed = time.time() - start_time
+            hz = step_count / elapsed
+            print(f"[Info]: Steps: {step_count}, Rate: {hz:.1f} Hz")
+        
+        time.sleep(0.01)
+    env.close()
