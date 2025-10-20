@@ -5,12 +5,12 @@ General mocked driver, you can define the input you want.
 from typing import Optional, Sequence, List
 import numpy as np
 from loguru import logger
-from mini_ros.common.device import MotorDevice, MotorConfig, motor_config_from_json
+from mini_ros.common.device import MotorReader, MotorConfig, motor_config_from_json
 
 
-class MockMotorReader(MotorDevice):
+class MockMotorReader(MotorReader):
     """
-    A mock motor driver, you can define the angle you want
+    A mock motor reader, you can define the angle you want
     """
 
     def __init__(
@@ -34,7 +34,7 @@ class MockMotorReader(MotorDevice):
     def initialize(self, joint_config: List[MotorConfig]):
         self.joint_config = joint_config
         self.num_joints = len(self.joint_config)
-        logger.info("Initializing mock motor driver.")
+        logger.info("Initializing mock motor reader.")
     
     def get_state(self):
         return np.zeros(self.num_joints)

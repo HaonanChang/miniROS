@@ -11,11 +11,11 @@ import time
 import numpy as np
 from typing import Dict, Any, List  
 from loguru import logger
-from mini_ros.common.device import MotorDevice, MotorConfig, motor_config_from_json
+from mini_ros.common.device import MotorReader, MotorConfig, motor_config_from_json
 from mini_ros.devices.motors.SF15S03 import SF15S03Encoder
 
 
-class EncoderReader(MotorDevice):
+class EncoderReader(MotorReader):
     """
     Encoder interface using SF12S03 encoders.
     Reading encoder from one line is fast.

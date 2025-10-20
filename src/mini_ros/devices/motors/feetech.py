@@ -7,12 +7,12 @@ import yaml
 import numpy as np
 from typing import Dict, Any, List
 from loguru import logger
-from mini_ros.common.device import Reader, MotorDevice, motor_config_from_json
+from mini_ros.common.device import Reader, MotorReader, motor_config_from_json
 
 DEBUG_GELLO_FEETCH = True
 
 
-class FeetechReader(MotorDevice):
+class FeetechReader(MotorReader):
     """
     Encoder interface using Feetech motors.
     Reading encoder from one line is fast.

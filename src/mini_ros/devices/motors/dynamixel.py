@@ -9,7 +9,7 @@ import numpy as np
 import yaml
 import os
 import time
-from mini_ros.common.device import MotorDevice, MotorConfig, motor_config_from_json
+from mini_ros.common.device import MotorReader, MotorConfig, motor_config_from_json
 from typing import List
 
 from loguru import logger
@@ -17,7 +17,7 @@ from loguru import logger
 DEBUG_DYNAMIXEL_GELLO = False
 
 
-class DynamixelReader(MotorDevice):
+class DynamixelReader(MotorReader):
     """
     Encoder interface using Dynamixel motors.
     Reading encoder from one line is fast.

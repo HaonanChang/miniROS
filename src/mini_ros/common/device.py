@@ -156,7 +156,7 @@ def motor_config_from_json(config_json: Dict[str, Any], include_names: List[str]
     return joint_config
 
 
-class MotorDevice(Reader):
+class MotorReader(Reader):
     """
     Motor driver interface (Blocking version).
     Implement this method.
