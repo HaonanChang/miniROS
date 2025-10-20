@@ -1,42 +1,43 @@
 joint_1:
   port: /dev/ttyUSB0
   id: 1
-  zero_point: 137.373046875
+  zero_point: 2.397611971465257
   sign: 1
-  scale: 0.017453
+  scale: 1
 joint_2:
   port: /dev/ttyUSB0
   id: 2
-  zero_point: 222.802734375
+  zero_point: 3.8886412972901003
   sign: -1
-  scale: 0.017453
+  scale: 1
 joint_3:
   port: /dev/ttyUSB0
   id: 3
-  zero_point: 223.681640625
+  zero_point: 3.903981105168957
   sign: 1
-  scale: 0.017453
+  scale: 1
 joint_4:
   port: /dev/ttyUSB0
   id: 4
-  zero_point: 221.66015625
+  zero_point: 3.868699547047587
   sign: 1
-  scale: 0.017453
+  scale: 1
 joint_5:
   port: /dev/ttyUSB0
   id: 5
-  zero_point: 222.626953125
+  zero_point: 3.885573335714329
   sign: 1
-  scale: 0.017453
+  scale: 1
 joint_6:
   port: /dev/ttyUSB0
   id: 6
-  zero_point: 6.6796875
+  zero_point: 0.11658253987930874
   sign: 1
-  scale: 0.017453
+  scale: 1
 joint_7:
   port: /dev/ttyUSB0
   id: 7
-  zero_point: 177.36328125
+  zero_point: 3.095573229953224
+  ref_point: 0.04
   sign: 1
-  scale: 0.034906
+  scale: 0.007

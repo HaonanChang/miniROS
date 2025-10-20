@@ -1,0 +1,211 @@
+<mujoco model="piper_description">
+  <option iterations="50" timestep="0.001" solver="PGS" gravity="0 0 -9.81" />
+
+  <compiler angle="radian" eulerseq="zyx" autolimits="true" />
+
+  <asset>
+    <material name="black" rgba="0.15 0.15 0.15 1" />
+    <material name="white" rgba="0.85 0.85 0.85 1" />
+    <material name="gray" rgba="0.3 0.3 0.3 1" />
+    <mesh name="d405_solid" file="meshes/d405_solid.stl" />
+    <!-- Visual meshes (OBJ) -->
+    <mesh name="base_link_visual" file="meshes/base_link.obj" />
+    <mesh name="link1_visual" file="meshes/link1.obj" />
+    <mesh name="link2_visual" file="meshes/link2.obj" />
+    <mesh name="link3_visual" file="meshes/link3.obj" />
+    <mesh name="link4_visual" file="meshes/link4.obj" />
+    <mesh name="link5_visual" file="meshes/link5.obj" />
+    <mesh name="link6_visual" file="meshes/link6.obj" />
+    <mesh name="link7_visual" file="meshes/link7.obj" />
+    <mesh name="link8_visual" file="meshes/link8.obj" />
+    <mesh name="vx300s_7_gripper_wrist_mount" file="meshes/vx300s_7_gripper_wrist_mount.stl" />
+    <mesh name="piper_camera_mount_scaled" file="meshes/piper_camera_mount_scaled.stl" />
+    <mesh name="piper_arm_base_scaled" file="meshes/piper_arm_base_scaled.stl" />
+    <!-- Material -->
+    <texture name="base_link_texture" file="meshes/base_link_texture_0.png" type="2d" />
+    <material name="base_link_material" texture="base_link_texture" />
+
+    <texture name="link1_texture" file="meshes/link1_texture_0.png" type="2d" />
+    <material name="link1_material" texture="link1_texture" />
+
+    <texture name="link2_texture" file="meshes/link2_texture_0.png" type="2d" />
+    <material name="link2_material" texture="link2_texture" />
+
+    <texture name="link3_texture" file="meshes/link3_texture_0.png" type="2d" />
+    <material name="link3_material" texture="link3_texture" />
+
+    <texture name="link4_texture" file="meshes/link4_texture_0.png" type="2d" />
+    <material name="link4_material" texture="link4_texture" />
+
+    <texture name="link5_texture" file="meshes/link5_texture_0.png" type="2d" />
+    <material name="link5_material" texture="link5_texture" />
+
+    <material name="link6_material" rgba="0 0 0 1.0" specular="0.4" shininess="1.0" />
+    <material name="link7_material" rgba="0 0 0 1.0" specular="0.4" shininess="1.0" />
+    <material name="link8_material" rgba="0 0 0 1.0" specular="0.4" shininess="1.0" />
+
+    <!-- Collision meshes (STL) -->
+    <mesh name="base_link_collision" file="meshes/base_link.STL" />
+    <mesh name="link1_collision" file="meshes/link1.STL" />
+    <mesh name="link2_collision" file="meshes/link2.STL" />
+    <mesh name="link3_collision" file="meshes/link3.STL" />
+    <mesh name="link4_collision" file="meshes/link4.STL" />
+    <mesh name="link5_collision" file="meshes/link5.STL" />
+    <mesh name="link6_collision" file="meshes/link6_1.STL" />
+    <mesh name="link7_collision" file="meshes/link7.STL" />
+    <mesh name="link8_collision" file="meshes/link8.STL" />
+  </asset>
+
+  <default>
+    <default class="vx300s">
+      <joint axis="0 0 1" actuatorfrcrange="-35 35" />
+      <site group="4" />
+      <default class="waist">
+        <joint axis="0 0 1" range="-2.618 2.618" damping="5.76" />
+        <position ctrlrange="-2.618 2.618" kp="86" />
+      </default>
+      <default class="shoulder">
+        <joint axis="0 0 1" range="0 3.14" armature="0.395" frictionloss="2.0" damping="20.0" actuatorfrcrange="-144 144" />
+        <position ctrlrange="0 3.14" kp="530" />
+      </default>
+      <default class="elbow">
+        <joint axis="0 0 1" range="-2.697 0" armature="0.383" frictionloss="1.15" damping="18.49" actuatorfrcrange="-59 59" />
+        <position ctrlrange="-2.697 0" kp="454" />
+      </default>
+      <default class="forearm_roll">
+        <joint axis="0 0 1" range="-1.832 1.832" armature="0.14" damping="6.78" actuatorfrcrange="-22 22" />
+        <position ctrlrange="-1.832 1.832" kp="156" />
+      </default>
+      <default class="wrist_angle">
+        <joint axis="0 0 1" range="-1.22 1.22" armature="0.008" damping="6.28" />
+        <position ctrlrange="-1.22 1.22" kp="74" />
+      </default>
+      <default class="wrist_rotate">
+        <joint axis="0 0 1" range="-3.14 3.14" damping="1.2" />
+        <position ctrlrange="-3.14 3.14" kp="20.8" />
+      </default>
+      <default class="finger">
+        <joint type="slide" armature="0.243" damping="40" />
+        <default class="left_finger">
+          <joint range="0 0.041" axis="0 0 -1" />
+          <position ctrlrange="0.002 0.037" kp="2000" kv="124" />
+        </default>
+        <default class="right_finger">
+          <joint range="0 0.041" axis="0 0 -1" />
+          <position ctrlrange="0.002 0.037" kp="2000" kv="124" />
+        </default>
+      </default>
+      <default class="visual">
+        <geom type="mesh" mass="0" group="2" contype="0" conaffinity="0" />
+      </default>
+      <default class="collision">
+        <geom group="3" type="mesh" condim="6" friction="1 5e-3 5e-4" solref=".01 1" />
+        <default class="sphere_collision">
+          <geom type="sphere" size="0.0006" rgba="1 0 0 1" />
+        </default>
+      </default>
+    </default>
+  </default>
+
+  <worldbody>
+    <light directional="true" diffuse="0.4 0.4 0.4" specular="0.1 0.1 0.1" pos="0 0 5.0" dir="0 0 -1" castshadow="false" />
+    <light directional="true" diffuse="0.6 0.6 0.6" specular="0.2 0.2 0.2" pos="0 0 4" dir="0 0 -1" />
+
+    <body name="left/base_link" childclass="vx300s" pos="-0.52865 0.0732 0.013" quat="1 0 0 0">
+      <site name="left/imu" size="0.01" pos="0 0 0" />
+      <geom pos="-0.005 0 -0.012" quat="0.7071068 0 0 0.7071068" type="mesh" mesh="piper_arm_base_scaled" class="visual" material="black" />
+      <geom pos="-0.005 0 -0.012" quat="0.7071068 0 0 0.7071068" type="mesh" mesh="piper_arm_base_scaled" class="collision" />
+      <geom type="mesh" mesh="base_link_visual" class="visual" material="gray" />
+      <geom type="mesh" mesh="base_link_collision" class="collision" />
+
+      <body name="left/link1" pos="0 0 0.123" quat="0.707105 0 0 -0.707108">
+        <inertial pos="0.00131676 0.000310289 -0.00922875" quat="0.557105 0.432155 0.377373 0.600388" mass="0.097868" diaginertia="9.25942e-05 8.3083e-05 7.69469e-05" />
+        <joint name="left/joint1" class="waist" pos="0 0 0" />
+        <geom type="mesh" mesh="link1_visual" class="visual" material="gray" />
+        <geom type="mesh" mesh="link1_collision" class="collision" />
+
+        <body name="left/link2" quat="0.499998 0.5 -0.500002 -0.5">
+          <inertial pos="0.148794 -0.00242027 0.00175155" quat="-0.0249063 0.70684 0.00803509 0.706889" mass="0.290889" diaginertia="0.00177549 0.00173142 0.00014552" />
+          <joint name="left/joint2" class="shoulder" pos="0 0 0" />
+          <geom type="mesh" mesh="link2_visual" class="visual" material="gray" />
+          <geom type="mesh" mesh="link2_collision" class="collision" />
+
+          <body name="left/link3" pos="0.28358 0.028726 0" quat="0.998726 0 0 0.0504536">
+            <inertial pos="-0.0996835 0.0349477 0.000508026" quat="0.0777021 0.702287 -0.0990541 0.700674" mass="0.290848" diaginertia="0.000241946 0.000222224 0.000100384" />
+            <joint name="left/joint3" class="elbow" pos="0 0 0" />
+            <geom type="mesh" mesh="link3_visual" class="visual" material="gray" />
+            <geom type="mesh" mesh="link3_collision" class="collision" />
+
+            <body name="left/link4" pos="-0.24221 0.068514 0" quat="0.544767 -0.544769 -0.450809 0.450808">
+              <inertial pos="0.000276465 -0.00102804 -0.00472831" quat="0.492305 0.505285 0.503294 0.499017" mass="0.127087" diaginertia="4.87057e-05 4.10595e-05 3.82001e-05" />
+              <joint name="left/joint4" class="forearm_roll" pos="0 0 0" />
+              <geom type="mesh" mesh="link4_visual" class="visual" material="black" />
+              <geom type="mesh" mesh="link4_collision" class="collision" />
+
+              <body name="left/link5" quat="0.707105 0.707108 0 0">
+                <inertial pos="8.82262e-05 0.0566829 -0.0019612" quat="0.507447 0.490986 0.506887 0.494466" mass="0.144711" diaginertia="5.63237e-05 4.88652e-05 4.39642e-05" />
+                <joint name="left/joint5" class="wrist_angle" pos="0 0 0" />
+                <geom type="mesh" mesh="link5_visual" class="visual" material="black" />
+                <geom type="mesh" mesh="link5_collision" class="collision" />
+
+                <body name="left/link6" pos="0 0.091 0.0014165" quat="1.89468e-08 -1.89469e-08 -0.707105 -0.707108">
+                  <inertial pos="0.0010312 0.0121761 0.0315481" quat="0.0230402 0.707091 0.0373344 0.70576" mass="0.195187" diaginertia="0.000154294 0.000125965 6.43536e-05" />
+                  <joint name="left/joint6" class="wrist_rotate" pos="0 0 0" />
+                  <geom type="mesh" mesh="link6_visual" class="visual" material="black" euler="1.5708 0 0" />
+                  <geom type="mesh" mesh="link6_collision" class="collision" />
+
+                  <geom class="visual" pos="-0.03 0 0.029" quat="0.707 0.707 -0.707 0.707" type="mesh" mesh="piper_camera_mount_scaled" material="white" />
+                  <geom class="collision" pos="-0.03 0 0.029" quat="0.707 0.707 -0.707 0.707" type="mesh" mesh="piper_camera_mount_scaled" />
+                  <geom class="visual" pos="-0.088 0 0.022" quat="0.216 0.976 -0.976 -0.216" type="mesh" mesh="d405_solid" material="black" />
+                  <geom class="collision" pos="-0.088 0 0.022" quat="0.216 0.976 -0.976 -0.216" type="mesh" mesh="d405_solid" />
+                  <camera name="wrist_cam_left" pos="-0.078 0 0.035" mode="fixed" quat="0.216 0.976 -0.976 -0.216"
+                    focal="1.93e-3 1.93e-3" resolution="1280 720" sensorsize="3896e-6 2140e-6" />
+
+                  <body name="left/link7" pos="0 0 0.13503" quat="1.89468e-08 1.89469e-08 0.707108 0.707105">
+                    <inertial pos="-0.000277778 -0.0467673 -0.00921029" quat="0.46134 0.536174 -0.553273 0.439968" mass="0.0264823" diaginertia="1.45134e-05 1.00041e-05 5.87021e-06" />
+                    <joint name="left/joint7" class="left_finger" pos="0 0 0" />
+                    <geom type="mesh" mesh="link7_visual" class="visual" material="black" />
+                    <geom type="mesh" mesh="link7_collision" class="collision" />
+                  </body>
+
+                  <body name="left/link8" pos="0 0 0.13503" quat="1.89468e-08 -1.89469e-08 -0.707108 0.707105">
+                    <inertial pos="0.000277817 0.0467674 -0.0092103" quat="0.553273 0.439968 -0.46134 0.536174" mass="0.0264822" diaginertia="1.45133e-05 1.0004e-05 5.87021e-06" />
+                    <joint name="left/joint8" class="right_finger" pos="0 0 0" />
+                    <geom type="mesh" mesh="link8_visual" class="visual" material="black" />
+                    <geom type="mesh" mesh="link8_collision" class="collision" />
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+
+  </worldbody>
+
+  <actuator>
+    <!-- Left arm position controllers with tuned parameters -->
+    <position name="left/joint1" joint="left/joint1" ctrllimited="true" ctrlrange="-2.618 2.618" kp="60" kv="10" />
+    <position name="left/joint2" joint="left/joint2" ctrllimited="true" ctrlrange="0 3.14" kp="360" kv="20" />
+    <position name="left/joint3" joint="left/joint3" ctrllimited="true" ctrlrange="-2.697 0" kp="300" kv="16" />
+    <position name="left/joint4" joint="left/joint4" ctrllimited="true" ctrlrange="-1.832 1.832" kp="100" kv="10" />
+    <position name="left/joint5" joint="left/joint5" ctrllimited="true" ctrlrange="-1.22 1.22" kp="74" kv="7.4" />
+    <position name="left/joint6" joint="left/joint6" ctrllimited="true" ctrlrange="-3.14 3.14" kp="20.8" />
+    <position name="left/joint7" joint="left/joint7" ctrllimited="true" ctrlrange="0 0.04" kp="200" />
+    <position name="left/joint8" joint="left/joint8" ctrllimited="true" ctrlrange="0.0 0.04" kp="200" />
+
+  </actuator>
+
+  <contact>
+    <!-- Left arm exclusions -->
+    <exclude body1="left/base_link" body2="left/link1" />
+    <exclude body1="left/link1" body2="left/link2" />
+    <exclude body1="left/link2" body2="left/link3" />
+    <exclude body1="left/link3" body2="left/link4" />
+    <exclude body1="left/link4" body2="left/link5" />
+    <exclude body1="left/link5" body2="left/link6" />
+    <exclude body1="left/link6" body2="left/link7" />
+    <exclude body1="left/link6" body2="left/link8" />
+  </contact>
+</mujoco>

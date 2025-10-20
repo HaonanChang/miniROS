@@ -197,6 +197,8 @@ class MotorReader(Reader):
         # Apply zero point correction
         corrected_read = raw_read - zero_point
         
+        if joint_config.joint_name == "joint_7":
+            print(corrected_read)
         # Apply sign and gain corrections
         corrected_read = sign * corrected_read * scale + ref_point
         
