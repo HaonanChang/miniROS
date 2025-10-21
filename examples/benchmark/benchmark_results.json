@@ -1,0 +1,54 @@
+[
+  {
+    "total_messages": 100,
+    "duration": 0.03113722801208496,
+    "frequency_hz": 3211.5896752655076,
+    "avg_latency_ms": 0.30995607376098633,
+    "min_latency_ms": 0.2562999725341797,
+    "max_latency_ms": 0.9138584136962891,
+    "median_latency_ms": 0.29468536376953125,
+    "std_latency_ms": 0.07094445292935835,
+    "success_rate": 100.0,
+    "data_type": "string",
+    "data_size_bytes": 13
+  },
+  {
+    "total_messages": 100,
+    "duration": 0.031434059143066406,
+    "frequency_hz": 3181.26270440824,
+    "avg_latency_ms": 0.31315088272094727,
+    "min_latency_ms": 0.2338886260986328,
+    "max_latency_ms": 0.8285045623779297,
+    "median_latency_ms": 0.3006458282470703,
+    "std_latency_ms": 0.06395843473603029,
+    "success_rate": 100.0,
+    "data_type": "string",
+    "data_size_bytes": 1000
+  },
+  {
+    "total_messages": 100,
+    "duration": 0.06628251075744629,
+    "frequency_hz": 1508.6936034444927,
+    "avg_latency_ms": 0.6615185737609863,
+    "min_latency_ms": 0.5280971527099609,
+    "max_latency_ms": 3.5054683685302734,
+    "median_latency_ms": 0.6129741668701172,
+    "std_latency_ms": 0.2997980327413062,
+    "success_rate": 100.0,
+    "data_type": "numpy",
+    "data_size_bytes": 800
+  },
+  {
+    "total_messages": 100,
+    "duration": 0.0579073429107666,
+    "frequency_hz": 1726.8967107348867,
+    "avg_latency_ms": 0.5778241157531738,
+    "min_latency_ms": 0.4856586456298828,
+    "max_latency_ms": 1.0690689086914062,
+    "median_latency_ms": 0.5588531494140625,
+    "std_latency_ms": 0.07522259504423155,
+    "success_rate": 100.0,
+    "data_type": "numpy",
+    "data_size_bytes": 80000
+  }
+]

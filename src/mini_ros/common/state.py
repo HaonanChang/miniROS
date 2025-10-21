@@ -81,5 +81,6 @@ class TimedData:
     """
     Timed data
     """
-    timestamp: int
-    data: Any
+    timestamp: int = 0
+    code: str = "normal"  # Code for the data
+    data: Any = None     # Data
