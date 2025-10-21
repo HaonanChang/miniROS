@@ -32,3 +32,9 @@ class RobotExecuteError(RobotError):
         super().__init__(message)
         self.code = code or "EXECUTION_FAILURE"
         # self.joint_id = joint_id
+
+class NetworkError(Exception):
+    """
+    Error when communicating over the network
+    """
+    pass
