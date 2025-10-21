@@ -21,7 +21,7 @@ class NetUtil:
             return cls.encode_ndarray(data)
         elif data_type == 'image':
             return cls.encode_image(data)
-        elif data_type == 'string':
+        elif data_type == 'string' or data_type == 'str':
             return cls.encode_string(data)
         else:
             raise ValueError(f"Invalid data_type: {data_type}. Must be 'ndarray', 'numpy', 'image', 'string'")
@@ -164,7 +164,7 @@ class NetUtil:
         elif data_type == 'image':
             return cls._decode_image(data)
         
-        elif data_type == 'string':
+        elif data_type == 'string' or data_type == 'str':
             return cls._decode_string(data)
         
         elif data_type == 'pickle':

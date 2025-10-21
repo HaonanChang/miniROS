@@ -21,7 +21,7 @@ from dataclasses import dataclass
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
 from mini_ros.utils.net_util import NetUtil
-from mini_ros.network.network_queue import NetworkQueueClient, NetworkQueueServer
+from mini_ros.network.network_queue import QueueDealerSender, QueueRouterRecver
 
 
 @dataclass
@@ -131,7 +131,7 @@ class FrequencyBenchmark:
         except RuntimeError as e:
             print(f"Warning: {e}, using port {self.port}")
         
-        self.server = NetworkQueueServer("benchmark_server", self.port, data_type=data_type)
+        self.server = QueueRouterRecver("benchmark_server", self.port, data_type=data_type)
         self.server_thread = threading.Thread(target=self.server.start_in_thread, daemon=True)
         self.server_thread.start()
         time.sleep(0.5)  # Give server time to start
@@ -152,7 +152,7 @@ class FrequencyBenchmark:
         self.start_server(data_type)
         
         # Create client
-        self.client = NetworkQueueClient("benchmark_client", self.port, data_type=data_type)
+        self.client = QueueDealerSender("benchmark_client", self.port, data_type=data_type)
         
         # Benchmark variables
         latencies = []

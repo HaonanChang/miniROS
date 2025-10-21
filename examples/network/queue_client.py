@@ -1,7 +1,7 @@
-from mini_ros.network.network_queue import NetworkQueueClient
+from mini_ros.network.network_queue import QueueDealerSender
 import time
 
-queue = NetworkQueueClient("queue", 5555)
+queue = QueueDealerSender("queue", 5555)
 
 while True:
     queue.put("1, 2, 3, 4, 5")
