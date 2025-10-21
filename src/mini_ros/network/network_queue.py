@@ -7,6 +7,7 @@ import zmq
 import numpy as np
 from typing import Any
 import queue
+from typing import Dict
 import threading
 from mini_ros.common.error import NetworkError
 from mini_ros.common.state import TimedData
@@ -40,7 +41,7 @@ class QueueDealerSender:
         """
         Put data into the queue.
         Send the data to the server and wait for reply through ZMQ.
-        Send format: [timestamp, code, data, counter]
+        Send format: [name, timestamp, code, data, counter]
         Recv format: [timestamp, code, counter]
         Return: True if successful, False if timed out.
         """
@@ -52,7 +53,7 @@ class QueueDealerSender:
         # Convert timestamp to bytes
         timestamp_bytes = str(timestamp).encode('utf-8')
         counter_bytes = self._counter.to_bytes(8, "big")    # 64 bits counter
-        self.socket.send_multipart([timestamp_bytes, code.encode('utf-8'), encoded_data, counter_bytes])
+        self.socket.send_multipart([self.name.encode('utf-8'), timestamp_bytes, code.encode('utf-8'), encoded_data, counter_bytes])
         logger.info(f"Client {self.name} sent data: {data.decode() if isinstance(data, bytes) else data} with counter {self._counter}")
         # Prevent counter overflow
         if self._counter >= self._max_counter:
@@ -94,7 +95,7 @@ class QueueRouterRecver:
     """
 
     def __init__(self, name: str, port: int, timeout: int = 1000, data_type: str = 'str'):
-        self.queue = queue.Queue()
+        self.queues: Dict[str, queue.Queue] = {}
         self.name = name
         self.port = port
         self.timeout = timeout
@@ -107,40 +108,57 @@ class QueueRouterRecver:
         self._counter = 0  # Internal counter for checking data consistency
         self._max_counter = 2**63 - 1  # Maximum safe counter value (signed 64-bit)
 
-    def get(self, timeout: int = 10):
-        # Get data from queue
+    def get(self, name: str, timeout: int = 10):
+        if name not in self.queues:
+            logger.warning(f"Queue {name} does not exist yet, will return None.")
+            return None
         try:
-            return self.queue.get(timeout=timeout)
+            return self.queues[name].get(timeout=timeout)
         except queue.Empty:
-            logger.warning(f"Queue {self.name} is empty.")
+            logger.warning(f"Queue {name} is empty.")
             return None
 
-    def put(self, data: Any):
-        self.queue.put(data)
-
-    def is_empty(self):
-        return self.queue.empty()
+    def is_empty(self, name: str):
+        if name not in self.queues:
+            logger.warning(f"Queue {name} does not exist yet, will return True.")
+            return True
+        return self.queues[name].empty()
     
-    def is_full(self):
-        return self.queue.full()
+    def is_full(self, name: str):
+        if name not in self.queues:
+            logger.warning(f"Queue {name} does not exist yet, will return False.")
+            return False
+        return self.queues[name].full()
 
-    def size(self):
-        return self.queue.qsize()
+    def size(self, name: str):
+        if name not in self.queues:
+            logger.warning(f"Queue {name} does not exist yet, will return 0.")
+            return 0
+        return self.queues[name].qsize()
     
     def polling_loop(self, timeout: int = 10):
+        """
+        Polling loop for the router recver.
+        Receive data from the clients and put it into the queue.
+        Send reply to the clients.
+        Receive format: [name, timestamp, code, encoded_data, counter]
+        Send format: [client_id, timestamp, code, counter]
+        """
         while True:
             try:
                 socks = dict(self.poller.poll(self.timeout))
                 if socks.get(self.socket) == zmq.POLLIN:
                     parts = self.socket.recv_multipart()
                     # ROUTER socket adds client identity as first part
-                    # Format: [client_id, timestamp, code, encoded_data, counter]
+                    # Format: [client_id, name, timestamp, code, encoded_data, counter]
                     if len(parts) >= 5:
-                        client_id = parts[0]
-                        timestamp = float(parts[1].decode('utf-8'))
-                        code = parts[2].decode('utf-8')
-                        encoded_data = parts[3]
-                        counter = int.from_bytes(parts[4], "big")
+                        client_identity = parts[0]
+                        client_name = parts[1].decode('utf-8')
+                        timestamp = float(parts[2].decode('utf-8'))
+                        recv_timestamp = TimeUtil.now().timestamp()
+                        code = parts[3].decode('utf-8')
+                        encoded_data = parts[4]
+                        recv_counter = int.from_bytes(parts[5], "big")
                         
                         # Decode the data
                         try:
@@ -148,21 +166,23 @@ class QueueRouterRecver:
                         except Exception as e:
                             logger.error(f"Failed to decode data: {e}")
                             # Send error reply
-                            self.socket.send_multipart([client_id, parts[1], "error".encode('utf-8'), counter.to_bytes(8, "big")])
+                            self.socket.send_multipart([client_identity, str(recv_timestamp).encode('utf-8'), "error".encode('utf-8'), recv_counter.to_bytes(8, "big")])
                             continue
                         
                         timed_data = TimedData(timestamp=timestamp, code=code, data=decoded_data)
-                        if self.queue.full():
+                        if client_name not in self.queues:
+                            self.queues[client_name] = queue.Queue()
+                        if self.queues[client_name].full():
                             # Drop the oldest item
-                            self.queue.get()
-                            self.queue.put(timed_data, timeout=timeout)
+                            self.queues[client_name].get_nowait()
+                            self.queues[client_name].put_nowait(timed_data)
                         else:
-                            self.queue.put(timed_data, timeout=timeout)
+                            self.queues[client_name].put_nowait(timed_data)
                         # Send reply to client (ROUTER needs client_id first)
-                        self.socket.send_multipart([client_id, parts[1], parts[2], counter.to_bytes(8, "big")])
-
-                        logger.info(f"Sent reply with counter {counter}")
-                        self._counter = counter
+                        # Format: [client_identity, timestamp, code, counter]
+                        self.socket.send_multipart([client_identity, str(recv_timestamp).encode('utf-8'), "normal".encode('utf-8'), recv_counter.to_bytes(8, "big")])
+                        logger.info(f"Sent reply with counter {recv_counter} to client {client_name}")
+                        self._counter = recv_counter
                     else:
                         logger.warning(f"Received message with insufficient parts: {len(parts)}")
                 else:

@@ -120,6 +120,16 @@ class Streamer(ABC):
         pass
 
 
+class Camera(Streamer):
+    """
+    Base class for all cameras.
+    """
+    name: str
+
+    @abstractmethod
+    def initialize(self, driver_config: Any):
+        pass
+
 ################################# Motor Device #################################
 @dataclass
 class MotorConfig:

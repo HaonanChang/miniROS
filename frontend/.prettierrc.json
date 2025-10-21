@@ -1,0 +1,10 @@
+{
+    "trailingComma": "all",
+    "tabWidth": 4,
+    "semi": true,
+    "singleQuote": false,
+    "useTabs": true,
+    "bracketSpacing": true,
+    "parser": "babel-ts",
+    "endOfLine": "lf"
+}

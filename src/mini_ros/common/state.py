@@ -84,3 +84,31 @@ class TimedData:
     timestamp: int = 0
     code: str = "normal"  # Code for the data
     data: Any = None     # Data
+
+
+##########################################
+### Different state for state machine ####
+##########################################
+@functools.total_ordering
+class RDCState(OrderedEnum):
+    """
+    State for Robot-Data-Collection
+    """
+    INIT = 0    # Initializing state
+    ALIGN = 1   # Aligning robot to gello
+    ENABLE = 2  # Enable the moving of robot
+    RECORD = 3  # Recording state
+    STOP = 4    # Pause the robot (Can interrupt anytime)
+    DRAG = 5    # Enter the drag mode, when you can drag the robot
+
+
+@functools.total_ordering
+class RobotNodeState(OrderedEnum):
+    """
+    State for robot internal state
+    """
+    INIT = 0    # Initializing state
+    ALIGN = 1   # Aligning robot to gello
+    ENABLE = 2  # Enable the moving of robot
+    DISABLE = 3 # Disable the moving of robot
+    DRAG = 4    # Enter the drag mode, when you can drag the robot
