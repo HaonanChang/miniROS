@@ -54,7 +54,6 @@ class MarvinRobotConfig:
 class MarvinRobot(Robot):
     """
     Marvin robot interface.
-    Because python has GIL, so actually, you don't need thread Lock.
     """
     def __init__(self, config: MarvinRobotConfig):
         self.port = config.port
@@ -65,6 +64,7 @@ class MarvinRobot(Robot):
         self.control_mode = config.control_mode
         self.dynamic_params = config.dynamic_params
         self.mode = "init"
+        self._active_event = threading.Event()
 
     def initialize(self):
         self.robot = Marvin_Robot()
@@ -102,6 +102,12 @@ class MarvinRobot(Robot):
         self.robot.send_cmd()
         time.sleep(0.25)
 
+        # Set active event
+        self._active_event.set()
+
+    def is_active(self) -> bool:
+        return self._active_event.is_set()
+
     def get_state(self, timeout: float = 1.0) -> RobotState:
         outputs = self.robot.subscribe(DCSS())["outputs"]
         return RobotState(
@@ -134,6 +140,11 @@ class MarvinRobot(Robot):
     def stop(self):
         self._pause_robot()
         self.robot.release_robot()
+        self._active_event.clear()
+
+    def pause(self):
+        self._pause_robot()
+        self._active_event.clear()
 
     def _pause_robot(self):
         # Set robot to stop state
@@ -287,3 +298,11 @@ class MarvinRobot(Robot):
         Marvin robot is dual arm robot, 14 dof.
         """
         return 14
+
+    @property
+    def max_control_freq(self) -> int:
+        return 60
+
+    @property
+    def max_read_freq(self) -> int:
+        return 200
