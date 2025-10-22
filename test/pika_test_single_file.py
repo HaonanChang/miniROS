@@ -237,7 +237,7 @@ class PikaGripper:
 
     def _get_data(self) -> None:
         while self.is_active():
-            start_time = time.time()
+            # start_time = time.time()
             try:
                 n_in_waiting = self.serial.in_waiting
                 logger.info(f"n_in_waiting: {n_in_waiting}")
@@ -253,11 +253,12 @@ class PikaGripper:
                             self._motor_data = json_data["motor"]
                             self._motor_status = json_data["motorstatus"]
                             logger.info(f"writting data: {self._motor_data['Position']}")
-                        # Clear buffer
-                        if len(self._buffer) > 2000:
-                            self._buffer = ""
+                        # # Clear buffer
+                        # if len(self._buffer) > 2000:
+                        #     self._buffer = ""
             except Exception as e:
                 logger.error("Error getting data: {}", e)
+            # time.sleep(0.001)
 
     def get_state(self) -> RobotState:
         with self.data_lock:
@@ -397,19 +398,19 @@ class MultThreadTest:
         self._read_log: list[RobotState] = []
     
     def start(self):
-        # self.control_thread = threading.Thread(target=self.control_loop)
-        # self.read_thread = threading.Thread(target=self.read_loop)
-        # self.control_thread.start()
-        # self.read_thread.start()
+        self.control_thread = threading.Thread(target=self.control_loop)
+        self.read_thread = threading.Thread(target=self.read_loop)
+        self.control_thread.start()
+        self.read_thread.start()
 
-        self.control_read_thread = threading.Thread(target=self.control_read_loop)
-        self.control_read_thread.start()
+        # self.control_read_thread = threading.Thread(target=self.control_read_loop)
+        # self.control_read_thread.start()
 
     def join(self):
-        # self.control_thread.join()
-        # self.read_thread.join()
+        self.control_thread.join()
+        self.read_thread.join()
 
-        self.control_read_thread.join()
+        # self.control_read_thread.join()
 
     def control_loop(self) -> None:
         start_time = time.time()
@@ -417,18 +418,19 @@ class MultThreadTest:
             robot_action = RobotAction(timestamp=TimeUtil.now().timestamp(), joint_cmds=joint_cmds)
             self._control_log.append(robot_action)
             self.robot.apply_action(robot_action)
-            current_time = time.time()
-            if current_time - start_time >= 1 / self.control_freq:
-                start_time = current_time
-            else:
-                # Wait for the control interval
-                time.sleep(0.002)
+            # current_time = time.time()
+            # if current_time - start_time >= 1 / self.control_freq:
+            #     start_time = current_time
+            # else:
+            #     # Wait for the control interval
+            #     time.sleep(0.002)
+            time.sleep(1/self.control_freq)
         logger.info("Quitting control loop.")
         # Set stop
         self.robot.stop()
 
     def read_loop(self) -> None:
-        start_time = time.time()
+        # start_time = time.time()
         while self.robot.is_active():
             try:
                 state = self.robot.get_state()
@@ -436,17 +438,12 @@ class MultThreadTest:
                 break
             self._read_log.append(state)
             current_time = time.time()
-            if current_time - start_time >= 1 / self.read_freq:
-                start_time = current_time
-                self._read_log.append(state)
-            else:
-                # Wait for the read interval
-                time.sleep(0.001)
+            time.sleep(1/self.read_freq)
         logger.info("Quitting read loop.")
 
     def control_read_loop(self):
         # Call read & control sequentially
-        start_time = time.time()
+        # start_time = time.time()
         for joint_cmds in self.joint_cmds_traj:
             robot_action = RobotAction(timestamp=TimeUtil.now().timestamp(), joint_cmds=joint_cmds)
             self.robot.apply_action(robot_action)
@@ -455,13 +452,8 @@ class MultThreadTest:
             state = self.robot.get_state()
             self._read_log.append(state)
 
-            # Rate
-            current_time = time.time()
-            if current_time - start_time >= 1 / self.control_freq:
-                start_time = current_time
-            else:
-                # Wait for the control interval
-                time.sleep(0.002)
+            # # Rate
+            time.sleep(1/self.control_freq)
             
         logger.info("Quitting read loop.")
         self.robot.stop()
@@ -502,8 +494,8 @@ def single_test(control_freq, read_freq, exp_idx=0, export_folder=""):
     time.sleep(1)
 
     # Generate joint traj
-    traj_1 = np.linspace(0, 0.5, 600)
-    traj_2 = np.linspace(0.5, 0, 600)
+    traj_1 = np.linspace(0, 0.5, 200)
+    traj_2 = np.linspace(0.5, 0, 200)
     num_repeat = 2
     joint_cmds_traj = []
     for i in range(num_repeat):
@@ -520,8 +512,8 @@ def single_test(control_freq, read_freq, exp_idx=0, export_folder=""):
 
 def batch_test():
     os.makedirs("./debug", exist_ok=True)
-    for control_freq in [30, 60, 120]:
-        for read_freq in [30, 60, 120]:
+    for control_freq in [200]:
+        for read_freq in [200]:
             for exp_idx in range(10):
                 print(f"Testing c: {control_freq}, r: {read_freq}, exp_ids: {exp_idx}")
                 single_test(control_freq=control_freq, read_freq=read_freq, exp_idx=exp_idx, export_folder="./debug")
