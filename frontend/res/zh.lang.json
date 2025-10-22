@@ -1,0 +1,66 @@
+{
+  "cmd_state": {
+    "misc": {
+      "episode_discarded": "已丢弃!",
+      "episode_saved": "已记录!"
+    },
+    "title": {
+      "dead": "离线",
+      "waiting": "等待机器就绪",
+      "init": "初始化",
+      "active": "可供录制",
+      "align": "机器人对齐控制器中",
+      "prep_record": "对齐控制器中",
+      "record": "录制中",
+      "restore": "复位",
+      "stopped": "停止",
+      "fault": "故障",
+      "ap_inference": "推理中",
+      "ap_align": "算法初始化",
+      "ap_align_ready": "可供人工介入",
+      "ap_pre_teleop": "对齐控制器中",
+      "ap_teleop": "人工介入摇操中",
+      "ap_ready": "可供推理",
+      "reboot": "等待重启",
+      "drag": "拖拽模式"
+    },
+    "subtitle": {
+      "dead": "未连接到机械臂",
+      "waiting": "等待机械臂就绪...",
+      "init": "机械臂正在初始化中，请确保已将控制器放置到初始位置",
+      "active": "机械臂已就绪！准备好后请使用左侧踏板开始录制",
+      "prep_record": "正在将机械臂对齐到控制器...",
+      "record": "机械臂正在录制",
+      "restore": "数据已丢弃！",
+      "restore_saving": "正在保存数据并重置！",
+      "stopped": "机器人停止控制，停留在原位",
+      "fault": "机械臂处于未知/故障状态，请使用支持按钮!",
+      "ap_inference": "机械臂正在推理...如遇故障，请立刻轻踩中间踏板打断推理。若结果良好，可轻踩右踏板保存。",
+      "ap_align": "机械臂已停止！请移动控制器与机械臂对齐。",
+      "ap_align_ready": "控制器已与机械臂对齐！在不移动控制器的情况下，使用左侧踏板接管控制。",
+      "ap_pre_teleop": "正在将机械臂对齐至控制器...",
+      "ap_teleop": "机械臂处于人工遥控模式！",
+      "ap_ready": "机械臂已就绪！准备好后请使用左侧踏板开始推理。",
+      "reboot": "等待机械臂重启...",
+      "drag": "请将机械臂拖拽回初始位置，然后轻踩右侧踏板恢复录制。"
+    }
+  },
+  "gello": {
+    "left": "左",
+    "right": "右",
+    "state_prompt": "控制器 位置",
+    "online": "控制器 已连接",
+    "offline": "控制器 未连接",
+    "home": "在初始位置",
+    "not_home": "不在初始位置",
+    "aligned": "机械臂已对齐",
+    "not_aligned": "机械臂未对齐",
+    "align_tip_home": "显示的关节数值表示与初始位置的差",
+    "align_tip_aligned": "显示的关节数值表示与机械臂当前位置的差"
+  },
+  "episode_counter": {
+    "count": "已采集数据条数",
+    "reset": "重置",
+    "prompt_reset": "计数器已重置!"
+  }
+}

@@ -2,81 +2,30 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CloseIcon from "@mui/icons-material/Close";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useSelector } from "react-redux";
+import Globals from "../misc/Globals";
 import { CommanderState } from "../redux/RobotInfo";
 import { RootState } from "../redux/Store";
 import "../styles/Tailwind.css";
-import Globals from "../util/Globals";
-
-function getStateDescription(state: CommanderState, isSaving: boolean) {
-	switch (state) {
-		case CommanderState.DEAD:
-			return "We have no connection to the robot";
-		case CommanderState.WAITING:
-			return "We have connection to Commander! Waiting for robot to be ready...";
-		case CommanderState.INIT:
-			return "Robot is initializing. Please make sure you have GELLO put to home position.";
-		case CommanderState.PREP_RECORD:
-			return "CommanderState.PREP_RECORD"
-		case CommanderState.AP_PRE_TELEOP:
-			return "Aligning robot to GELLO...";
-		case CommanderState.ACTIVE:
-			return "CommanderState.ACTIVE";
-		case CommanderState.AP_READY:
-			// return `Robot is ${state.toLowerCase().replace("ap_", "")}! Use the left paddle to ${state === CommanderState.ACTIVE ? "start recording" : "start inference"} when you are ready.`;
-			return `Robot is ${state.toLowerCase().replace("ap_", "")}! Use the left paddle to start when you are ready.`;
-		case CommanderState.AP_INFERENCE:
-			return "Robot is running inference...Use the Middle paddle to interrupt. Or right paddle to save if you think the data is good.";
-		case CommanderState.AP_ALIGN:
-			return "Robot stopped! Please move the GELLO to match the robot.";
-		case CommanderState.AP_ALIGN_READY:
-			return "GELLO is aligned to robot! Without moving the GELLOs, use the left paddle to take control.";
-		case CommanderState.AP_TELEOP:
-			return "Robot in teleop mode!";
-		case CommanderState.RECORD:
-			return "Robot is recording.";
-		case CommanderState.RESTORE:
-			return isSaving ? "Saving data and resetting!" : "Data discarded!";
-		case CommanderState.DRAG:
-			return "Drag the robot back to home position! Then use the right paddle to resume collection.";
-		case CommanderState.REBOOT:
-			return "Wait for robot to reboot!";
-		default:
-			return "Robot is in unknown / faulty state, please use the support button.";
-	}
-}
-
-function getStateName(state: CommanderState) {
-	if (state === CommanderState.DEAD) {
-		return "Offline";
-	}
-	if (state === CommanderState.ACTIVE) {
-		return "Ready";
-	} else if (
-		state === CommanderState.PREP_RECORD ||
-		state === CommanderState.AP_PRE_TELEOP
-	) {
-		return "Aligning Robot...";
-	}
-
-	if (state === CommanderState.AP_ALIGN_READY) {
-		return "Ready for Recovery";
-	}
-
-	const rawName = CommanderState[state].toLowerCase().replace("ap_", "");
-
-	if (rawName.length > 0) {
-		// Capitalize the first letter
-		return rawName[0].toUpperCase() + rawName.slice(1);
-	}
-
-	return "Unknown";
-}
 
 export default function RobotStatusWidget() {
+	const { t } = useTranslation();
 	const robotInfo = useSelector((state: RootState) => state.robotInfo);
 	const [elapsedTimeMs, setElapsedTimeMs] = useState(0);
 	//const [backgroundColor, setBackgroundColor] = useState("");
+
+	function getStateDescription(state: CommanderState, isSaving: boolean) {
+		return t(
+			"cmd_state/subtitle/" +
+				state.toLowerCase() +
+				(isSaving && state === CommanderState.RESTORE ? "_saving" : ""),
+		);
+	}
+
+	function getStateName(state: CommanderState) {
+		return t("cmd_state/title/" + state.toLowerCase());
+	}
 
 	let backgroundColor;
 
@@ -157,6 +106,9 @@ export default function RobotStatusWidget() {
 		case CommanderState.FAULT:
 			backgroundColor = "#b3261e";
 			break;
+		case CommanderState.STOPPED:
+			backgroundColor = "#24231f";
+			break;
 	}
 
 	const widthClass = "w-150";
@@ -164,14 +116,18 @@ export default function RobotStatusWidget() {
 	const discardWidget = (
 		<div className="flex flex-row items-center justify-center w-full">
 			<CloseIcon sx={{ fontSize: "48pt", color: "white" }} />
-			<p className="text-5xl opacity-70 text-white ml-5">Discarded!</p>
+			<p className="text-5xl opacity-70 text-white ml-5">
+				{t("cmd_state/misc/episode_discarded")}
+			</p>
 		</div>
 	);
 
 	const saveWidget = (
 		<div className="flex flex-row items-center justify-center w-full">
 			<CheckCircleIcon sx={{ fontSize: "48pt", color: "white" }} />
-			<p className="text-5xl opacity-70 text-white ml-5">Saved!</p>
+			<p className="text-5xl opacity-70 text-white ml-5">
+				{t("cmd_state/misc/episode_saved")}
+			</p>
 		</div>
 	);
 

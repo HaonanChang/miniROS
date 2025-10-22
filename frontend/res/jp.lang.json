@@ -1,0 +1,62 @@
+{
+  "cmd_state": {
+    "misc": {
+      "episode_discarded": "破棄されました！",
+      "episode_saved": "保存されました！"
+    },
+    "title": {
+      "dead": "オフライン",
+      "waiting": "待機中",
+      "init": "初期化中",
+      "active": "準備完了",
+      "align": "Controllerにアライン中",
+      "prep_record": "Controllerにアライン中",
+      "record": "録画中",
+      "restore": "リセット",
+      "stopped": "停止",
+      "fault": "故障",
+      "ap_inference": "推論中",
+      "ap_align": "アルゴリズム初期化",
+      "ap_align_ready": "手動操作可能",
+      "ap_pre_teleop": "Controllerにアライン中",
+      "ap_teleop": "手動操作中",
+      "ap_ready": "推論可能"
+    },
+    "subtitle": {
+      "dead": "ロボットアームに接続されていません",
+      "waiting": "ロボットアームの準備を待っています...",
+      "init": "ロボットアームを初期化中です。Controllerが初期位置にあることを確認してください。",
+      "active": "ロボットアームの準備ができました！準備ができたら左ペダルで録画を開始してください。",
+      "prep_record": "ロボットアームをControllerにアライン中...",
+      "record": "ロボットアームが録画中です",
+      "restore": "データが破棄されました！",
+      "restore_saving": "データを保存してリセット中！",
+      "stopped": "ロボットアームが不明/故障状態です。サポートボタンを使用してください！",
+      "fault": "ロボットアームが不明/故障状態です。サポートボタンを使用してください！",
+      "ap_inference": "ロボットアームが推論中です...故障が発生した場合はすぐに中央のペダルを軽く踏んで推論を中断してください。結果が良ければ右ペダルを軽く踏んで保存できます。",
+      "ap_align": "ロボットアームが停止しました！Controllerをロボットアームと合わせてください。",
+      "ap_align_ready": "Controllerがロボットアームとアラインされました！Controllerを動かさずに左ペダルで操作を引き継いでください。",
+      "ap_pre_teleop": "ロボットアームをControllerにアライン中...",
+      "ap_teleop": "ロボットアームが手動操作モードです！",
+      "ap_ready": "ロボットアームの準備ができました！準備ができたら左ペダルで推論を開始してください。"
+    }
+  },
+  "gello": {
+    "left": "左",
+    "right": "右",
+    "state_prompt": "Controller位置",
+    "online": "Controller接続済み",
+    "offline": "Controller未接続",
+    "home": "初期位置にあります",
+    "not_home": "初期位置にありません",
+    "aligned": "ロボットアームとアライン済み",
+    "not_aligned": "ロボットアームと未アライン",
+    "align_tip_home": "表示されている値は初期位置との差を示します",
+    "align_tip_aligned": "表示されている値は現在位置との差を示します"
+  },
+  "episode_counter": {
+    "count": "収集済みデータ数",
+    "reset": "リセット",
+    "prompt_reset": "カウンターがリセットされました！"
+  }
+}

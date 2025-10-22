@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import Logger from "../util/Logger";
+import Logger from "../misc/Logger";
 
 export enum CommanderState {
 	DEAD = "DEAD",
@@ -23,7 +23,7 @@ export enum CommanderState {
 	// For Some big robot
 	EMERGENCY = "EMERGENCY",
 	DRAG = "DRAG",
-	REBOOT = "REBOOT"
+	REBOOT = "REBOOT",
 }
 
 export interface GelloState {

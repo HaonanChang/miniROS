@@ -7,7 +7,6 @@ In current version, cameras nodes are under this node.
 - OFF: Off the file node.
 """
 import asyncio
-from .ports import RDC_STATE_PUB_PORT, RDC_STATE_RECV_PORT
 from typing import Dict, Any
 from mini_ros.common.state import RDCState
 from mini_ros.network.network_queue import QueueDealerSender, QueueSubRecver

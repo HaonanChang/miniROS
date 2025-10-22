@@ -1,12 +1,15 @@
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import { Button } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import { useDispatch, useSelector } from "react-redux";
 import RobotRequest from "../backend/RobotRequest";
+import Globals from "../misc/Globals";
 import { setSnackBar, SnackbarType } from "../redux/SnackbarState";
 import { RootState } from "../redux/Store";
-import Globals from "../util/Globals";
 
 export default function Counter() {
+	const { t } = useTranslation();
+
 	const value = useSelector((state: RootState) => state.robotInfo.counter);
 	const dispatch = useDispatch();
 
@@ -16,7 +19,7 @@ export default function Counter() {
 
 			dispatch(
 				setSnackBar({
-					message: "Counter reset!",
+					message: t("episode_counter/prompt_reset"),
 					type: SnackbarType.GOOD,
 					durationMs: 1500,
 				}),
@@ -38,7 +41,7 @@ export default function Counter() {
 		>
 			<div className="px-5">
 				<p className="text-lg text-black dark:text-white font-bold">
-					Count: {value}
+					{t("episode_counter/count")}: {value}
 				</p>
 			</div>
 			<Button
@@ -53,7 +56,7 @@ export default function Counter() {
 			>
 				<div className="flex flex-row items-center justify-center gap-x-1">
 					<RestartAltIcon />
-					<p className="text-lg">Reset</p>
+					<p className="text-lg">{t("episode_counter/reset")}</p>
 				</div>
 			</Button>
 		</div>

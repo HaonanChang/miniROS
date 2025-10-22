@@ -6,6 +6,8 @@ import KeyListener from "../backend/KeyboardListener";
 import RobotRequest from "../backend/RobotRequest";
 import RobotStateListener from "../backend/RobotStateListener";
 import RdcSnackbar from "../components/RdcSnackbar";
+import LocaleHelper from "../misc/LocaleHelper";
+import Logger from "../misc/Logger";
 import { RootState } from "../redux/Store";
 import "../styles/App.css";
 import "../styles/Tailwind.css";
@@ -14,6 +16,10 @@ import NormalPanel from "./NormalPanel";
 
 function App() {
 	const dispatcher = useDispatch();
+
+	useEffect(() => {
+		Logger.info("Locale config:", JSON.stringify(LocaleHelper.getConfig()));
+	}, []);
 
 	const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
 
@@ -52,9 +58,6 @@ function App() {
 		};
 	}, []);
 
-	// const currentState = useSelector(
-	// 	(state: RootState) => state.robotInfo.state,
-	// );
 	const isAutopilot = useSelector(
 		(state: RootState) => state.robotInfo.isAutopilot,
 	);

@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import Logger from "../util/Logger";
+import Logger from "../misc/Logger";
 
 export const DEFAULT_DURATION_MS = 1500;
 

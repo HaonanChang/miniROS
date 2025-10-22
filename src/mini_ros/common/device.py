@@ -26,7 +26,7 @@ class Reader(ABC):
         pass
 
     @abstractmethod
-    def get_state(self):
+    def get_state(self) -> Any:
         pass
 
     @abstractmethod
@@ -39,6 +39,7 @@ class Robot(ABC):
     Base class for all robots.
     """
     name: str
+    is_full_duplex: bool = True
 
     ###################### Required Methods ######################
     @abstractmethod
@@ -65,6 +66,13 @@ class Robot(ABC):
     @abstractmethod
     def reboot(self):
         pass
+
+    def pause(self):
+        """
+        [Optional]
+        Pause the robot. If not implemented, it will call stop() by default.
+        """
+        self.stop()
 
     ###################### Optional Methods ######################
     def set_safe_speed(self):

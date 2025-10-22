@@ -1,11 +1,11 @@
 import { Dispatch } from "@reduxjs/toolkit";
+import Globals from "../misc/Globals";
+import Logger from "../misc/Logger";
 import {
 	CommanderState,
 	resolveRobotState,
 	setCommanderState,
 } from "../redux/RobotInfo";
-import Globals from "../util/Globals";
-import Logger from "../util/Logger";
 
 export default class RobotStateListener {
 	private static socket: WebSocket;

@@ -38,7 +38,7 @@ class RobotState:
     Robot state
     """
     # 1: Timestamp
-    timestamp: int = 0
+    timestamp: float = 0
     # (N,): (N is the number of joints)
     joint_positions: list[float] = field(default_factory=list)
     # (N,): (N is the number of joints)
@@ -61,7 +61,7 @@ class RobotAction:
     Robot action
     """
     # 1: Timestamp
-    timestamp: int
+    timestamp: float
     # (N,): (N is the number of joints)
     # Joint-space Position Control
     joint_cmds: list[float] = field(default_factory=list)
@@ -108,7 +108,43 @@ class RobotNodeState(OrderedEnum):
     State for robot internal state
     """
     INIT = 0    # Initializing state
-    ALIGN = 1   # Aligning robot to gello
-    ENABLE = 2  # Enable the moving of robot
-    DISABLE = 3 # Disable the moving of robot
-    DRAG = 4    # Enter the drag mode, when you can drag the robot
+    CONTROL = 1  # Enable the moving of robot
+    PAUSE = 2  # Disable the moving of robot
+    DRAG = 3     # Enter the drag mode, when you can drag the robot
+
+
+##########################################
+### Back compatibility with RDC ##########
+##########################################
+
+@functools.total_ordering
+class CommanderState(OrderedEnum):
+    """
+    The state of the commander.
+    To back-compatibility with RDC. Remove this after the transition is complete.
+    """
+
+    DEAD = 0
+    INIT = 1         # [New] -> INIT state
+    ACTIVE = 2       # [New] -> ENABLE state
+    ALIGN = 3        # [New] -> ALIGN state
+    RECORD = 4       # [New] -> RECORD state
+    RESTORE = 5      
+    END = 6
+    FAULT = 7
+    STOPPED = 8       # [New] -> STOP state
+    WAITING = 9
+
+    # Unique to Autopilot
+    AP_INFERENCE = 10
+    AP_ALIGN = 11
+    AP_PRE_TELEOP = 12
+    AP_TELEOP = 13
+    AP_READY = 14
+
+    # Unique to Some-robots
+    EMERGENCY = 15
+    DRAG = 16         # [New] -> DRAG state
+    REBOOT = 17
+
+    LOSE_CONNECTION = 18

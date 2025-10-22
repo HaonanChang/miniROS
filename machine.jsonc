@@ -1,0 +1,79 @@
+{
+  "misc": {
+    // Whether rdc_public should be in "mock" mode -- all hardware will be simulated.
+    //This is designed for CI and debugging without attaching to hardware.
+    "mock": false,
+    // Specifies where to save the data episodes.
+    "data_upload_dir": "./tmp_data"
+  },
+
+  // In case you want to manipulate importer's behavior, you can do it here.
+  "importer": {
+    // Controls post-processing behavior.
+    "post_process": {
+      // Whether to generate three-camera MP4 video.
+      "generate_video": true,
+      // Whether to trim the episode to remove the leading frames that have no movement.
+      "trim_movements": true,
+      // Whether to delete raw data (PKL, JSONL.) after post-processing. Note that even if you turn this off, NAS will ignore PKL and JSONL.
+      // This toggle is intended for local testing. Leave this in production machines.
+      "delete_raw_data": true,
+      // Whether to skip uploading to NAS. If true, data will stay at (w)
+      "skip_upload": false
+    },
+    "rdc": {
+      // Whether to use the staging version of RDC.
+      // (Staging and production docker containers are separate,both *should* be available at target machines,
+      // but you need to let importer know whether to use the staging one.)
+      "staging": false
+    }
+  },
+
+  "robot": {
+    // The type of robot to use. Currently only "piper" is supported in rdc_public.
+    "type": "net",
+    "ports": {
+      "left": "1-4:1.0",
+      "right": "1-10:1.0"
+    },
+    "obs_rate": 200,
+    // The cameras to use. Comment out the ones you are not using.
+    // Or add.
+    // Note that we only support Realsense D405 for now.
+    // Or implement your own by extending the src.inputs.polling_input.PollingInput class
+    "cameras": {
+    }
+  },
+  "commander": {
+    "polling_rate": 60,
+    "web": {
+      "host": "0.0.0.0",
+      "port": 5006
+    },
+    // The teleop controller to use.
+    // Use scripts.calibrate_gello.py to produce the value of "teleop" if you are using Dynamixel-based GELLOs.
+    "teleop": {
+      "type": "super_gello",
+      "ports": {
+        "left": {
+          "ids": [8, 9, 10, 11, 12, 13, 14, 15],
+          "offsets": [2.880816, 2.590894, 1.494097, 0.854427, 4.922544, 1.877592, 4.970098, 3.669282],
+          "signs": [-1, -1, -1, 1, -1, 1, 1, 1],
+          "ref_joints": [1.57079633, -1.57079633, -1.57079633, -1.57079633, 0, 0, 0, 0],
+          "scales": [1, 1, 1, 1, 1, 1, 1, 0],
+          "port": "/dev/ttyACM0",
+          "baudrate": 1000000
+        },
+        "right": {
+          "ids": [0, 1, 2, 3, 4, 5, 6, 7],
+          "offsets": [1.797825, 1.621418, 4.580467, 1.517107, 2.782641, 1.770214, 5.388875, 2.557146],
+          "signs": [1, -1, 1, -1, 1, 1, -1, 1],
+          "ref_joints": [-1.57079633, -1.57079633, 1.57079633, -1.57079633, 0, 0, 0, 0],
+          "scales": [-1, 1, -1, -1, -1, 1, -1, 1],
+          "port": "/dev/ttyACM0",
+          "baudrate": 1000000
+        }
+      }
+    }
+  }
+}

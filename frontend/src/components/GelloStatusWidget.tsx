@@ -1,7 +1,8 @@
+import { useTranslation } from "react-i18next";
 import { useSelector } from "react-redux";
+import Globals from "../misc/Globals";
 import { CommanderState, RobotInfo } from "../redux/RobotInfo";
 import { RootState } from "../redux/Store";
-import Globals from "../util/Globals";
 import GelloPositionWidget from "./GelloPositionWidget";
 
 /**
@@ -18,23 +19,8 @@ function isRobotAsHome(robotInfo: RobotInfo) {
 	]).has(robotInfo.commander);
 }
 
-/**
- * Returns the text to display in the home widget (Inference should say "aligned", regular commander should say "at home")
- * @param robotInfo The robot info
- * @returns The text to display in the home widget
- */
-function getHomeWidgetText(robotInfo: RobotInfo) {
-	const keyText = isRobotAsHome(robotInfo) ? "aligned" : "at home";
-
-	if (robotInfo.isGelloHome) {
-		// Capitalize the first letter of the keyText
-		return `${keyText.charAt(0).toUpperCase()}${keyText.slice(1)}`;
-	} else {
-		return `NOT ${keyText}`;
-	}
-}
-
 export default function GelloAlignWidget() {
+	const { t } = useTranslation();
 	const robotInfo = useSelector((state: RootState) => state.robotInfo);
 
 	const homeWidgetColor = robotInfo.isGelloHome
@@ -45,7 +31,28 @@ export default function GelloAlignWidget() {
 		Object.entries(robotInfo.gelloState["left"] ?? {}).length > 0 &&
 		robotInfo.commander != CommanderState.DEAD;
 
-	const statusText = isGelloOnline ? "Gello Online" : "Gello Offline";
+	/**
+	 * Returns the text to display in the home widget (Inference should say "aligned", regular commander should say "at home")
+	 * @param robotInfo The robot info
+	 * @returns The text to display in the home widget
+	 */
+	function getHomeWidgetText(robotInfo: RobotInfo) {
+		// const keyText = isRobotAsHome(robotInfo) ? "aligned" : "at home";
+
+		// if (robotInfo.isGelloHome) {
+		// 	// Capitalize the first letter of the keyText
+		// 	return `${keyText.charAt(0).toUpperCase()}${keyText.slice(1)}`;
+		// } else {
+		// 	return `NOT ${keyText}`;
+		// }
+
+		return t(
+			"gello/" +
+				`${robotInfo.isGelloHome ? "" : "not_"}${isRobotAsHome(robotInfo) ? "at_home" : "aligned"}`,
+		);
+	}
+
+	const statusText = t(`gello/${isGelloOnline ? "online" : "offline"}`);
 	return (
 		<div
 			className={`flex flex-row items-center p-5 ${Globals.BG_SURFACE_CONTAINER} rounded-4xl transition-all gap-x-5`}
@@ -58,9 +65,12 @@ export default function GelloAlignWidget() {
 				{isGelloOnline ? (
 					<div className="bg-current/10 mx-auto p-2 rounded-xl">
 						<p className="text-sm opacity-60">
-							Values indicate how far you are from the{" "}
-							{isRobotAsHome(robotInfo) ? "ALIGNED" : "HOME"}{" "}
-							position.
+							{t(
+								"gello/align_tip_" +
+									(isRobotAsHome(robotInfo)
+										? "aligned"
+										: "home"),
+							)}
 						</p>
 					</div>
 				) : null}

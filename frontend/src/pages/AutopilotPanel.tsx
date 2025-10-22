@@ -2,19 +2,22 @@ import { WarningAmberRounded } from "@mui/icons-material";
 import LockIcon from "@mui/icons-material/Lock";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import { Button } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import { useDispatch, useSelector } from "react-redux";
 import Counter from "../components/Counter";
 import GelloAlignWidget from "../components/GelloStatusWidget";
 import PromptSelector from "../components/PromptSelector";
 import RobotStatusWidget from "../components/RobotStatusWidget";
+import Globals from "../misc/Globals";
 import { setActionLock } from "../redux/ActionLock";
 import { RootState } from "../redux/Store";
-import Globals from "../util/Globals";
 
 export default function AutopilotPanel() {
 	const isLocked = useSelector(
 		(state: RootState) => state.actionLock.actionLock,
 	);
+
+	const { t } = useTranslation();
 	const dispatch = useDispatch();
 	return (
 		<div className="flex flex-row gap-x-5 items-center">
@@ -43,7 +46,9 @@ export default function AutopilotPanel() {
 					>
 						{isLocked ? <LockIcon /> : <LockOpenIcon />}
 						<p className="ml-2">
-							{isLocked ? "Paddles Locked" : "Paddles Unlocked"}
+							{isLocked
+								? t("autopilot/paddle_locked")
+								: t("autopilot/paddle_unlocked")}
 						</p>
 					</Button>
 				</div>
@@ -52,7 +57,7 @@ export default function AutopilotPanel() {
 					<PromptSelector />
 					<div className="flex flex-row mt-5 p-2 rounded-2xl gap-3 items-center justify-center bg-orange-500/25 outline outline-current/10">
 						<WarningAmberRounded className="text-orange-500" />
-						<p>Please lock paddles before updating prompts!</p>
+						<p>{t("autopilot/prompt_locked")}</p>
 					</div>
 				</div>
 

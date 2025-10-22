@@ -1,0 +1,71 @@
+{
+  "autopilot": {
+    "paddle_locked": "Paddles Locked",
+    "paddle_unlocked": "Paddles Unlocked",
+    "prompt_locked": "Please lock paddles before updating prompts!"
+  },
+  "cmd_state": {
+    "misc": {
+      "episode_discarded": "Discarded!",
+      "episode_saved": "Saved!"
+    },
+    "title": {
+      "dead": "Offline",
+      "waiting": "Waiting",
+      "init": "Initialize",
+      "active": "Ready",
+      "align": "Aligning Robot to Controller...",
+      "prep_record": "Aligning Robot...",
+      "record": "Record",
+      "restore": "Restore",
+      "stopped": "Stopped",
+      "fault": "Fault",
+      "ap_inference": "ap_inference",
+      "ap_align": "ap_align",
+      "ap_align_ready": "Ready for Recovery",
+      "ap_pre_teleop": "Aligning Robot...",
+      "ap_teleop": "Teleop",
+      "ap_ready": "Ready for Inference",
+      "reboot": "Reboot",
+      "drag": "Drag"
+    },
+    "subtitle": {
+      "dead": "We have no connection to the robot",
+      "waiting": "We have connection to Commander! Waiting for robot to be ready...",
+      "init": "Robot is initializing. Please make sure you have Controller put to ·home position.",
+      "active": "Robot is ready! Use the left paddle to start recording when you are ready.",
+      "prep_record": "Aligning robot to Controller...",
+      "record": "Robot is recording.",
+      "restore": "Data discarded!",
+      "restore_saving": "Saving data and resetting!",
+      "stopped": "Robot control is stopped, robot stays at current position",
+      "fault": "Robot is in unknown / faulty state, please use the support button.",
+      "ap_inference": "Robot is running inference...Use the Middle paddle to interrupt. Or right paddle to save if you think the data is good.",
+      "ap_align": "Robot stopped! Please move the Controller to match the robot.",
+      "ap_align_ready": "Controller is aligned to robot! Without moving the Controller, use the left paddle to take control.",
+      "ap_pre_teleop": "Aligning robot to Controller...",
+      "ap_teleop": "Robot in teleop mode!",
+      "ap_ready": "Robot is ready! Use the left paddle to start inference when you are ready.",
+      "reboot": "Waiting for robot to reboot...",
+      "drag": "Drag the robot back to home position! Then use the right paddle to resume collection."
+    }
+  },
+  "gello": {
+    "left": "Left",
+    "right": "Right",
+    "state_prompt": "Controller Position",
+    "online": "Controller Online",
+    "offline": "Controller Offline",
+    "home": "At home",
+    "not_home": "Not at home",
+    "aligned": "Aligned",
+    "not_aligned": "Not aligned",
+    "align_tip_home": "Values indicate how far you are from the HOME position.",
+    "align_tip_aligned": "Values indicate how far you are from the ALIGNED position."
+  },
+  "episode_counter": {
+    "count": "Recorded",
+    "reset": "Reset",
+    "prompt_reset": "Counter has been reset!"
+  }
+}

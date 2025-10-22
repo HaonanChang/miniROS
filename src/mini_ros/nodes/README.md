@@ -2,13 +2,13 @@
 
 There are the following modules for the minimal RDC:
 
-### **StateNode**
+### **CommanderNode**
 
-WebDriver and stateMachine is under this node. It also manage keybinding. It controls the whole RDC state.
+WebDriver and stateMachine is under this node. It also manage keybinding. It controls the whole RDC state & Monitor the robot state.
 
 **Internal state**:
 - ALIGN: Aligning robot to gello's position. (SLOW)
-- ENABLE: Enable the moving of robot. (The FilIO is off).
+- ACTIVE: Enable the moving of robot. (The FilIO is off).
 - RECORD: Recording state. (The FilIO is on).
 - STOP: Pause the robot (Can interrupt anytime).
 - DRAG: Enter the drag mode, when you can drag the robot.
@@ -20,7 +20,7 @@ WebDriver and stateMachine is under this node. It also manage keybinding. It con
 - ALIGN
 - ENABLE
 - DISABLE
-- DRAG
+- STYOP
 
 Gello & Robot is under this node. It has a *statesub* to subscribe the rdc state. It has a *statesender* to update the internal state. It has another sender to send to FileNode.
 

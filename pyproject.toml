@@ -33,6 +33,12 @@ dependencies = [
     "scipy",
     "urchin",
     "tqdm",
+    "fastapi",
+    "uvicorn",
+    "httptools",
+    "python-dotenv",
+    "watchfiles==1.1.1",
+    "websockets==15.0.1",
 ]
 
 [tool.hatch.build.targets.wheel]

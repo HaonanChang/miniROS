@@ -1,4 +1,6 @@
 import { Dispatch } from "@reduxjs/toolkit";
+import Globals from "../misc/Globals";
+import Logger from "../misc/Logger";
 import { CommanderState, setIsDataSaving } from "../redux/RobotInfo";
 import {
 	setSnackBar,
@@ -6,8 +8,6 @@ import {
 	SnackbarType,
 } from "../redux/SnackbarState";
 import { store } from "../redux/Store";
-import Globals from "../util/Globals";
-import Logger from "../util/Logger";
 
 export default class RobotRequest {
 	//@ts-ignore
@@ -209,24 +209,23 @@ export default class RobotRequest {
 						durationMs: 2000,
 					}),
 				);
-			}
-			else if(prevState == CommanderState.RECORD) {
-			const startRecordTime =
-				store.getState().robotInfo.startRecordTimePosix ??
-				new Date().getTime();
+			} else if (prevState == CommanderState.RECORD) {
+				const startRecordTime =
+					store.getState().robotInfo.startRecordTimePosix ??
+					new Date().getTime();
 
-			const elapsed = new Date().getTime() - startRecordTime;
+				const elapsed = new Date().getTime() - startRecordTime;
 
-			const elapsed_seconds_str = (elapsed / 1000).toFixed(2);
+				const elapsed_seconds_str = (elapsed / 1000).toFixed(2);
 
-			RobotRequest._dispatcher(setIsDataSaving(true));
-			RobotRequest._dispatcher(
-				setSnackBar(<SnackbarState>{
-					message: `Saving session! (Recording Length: ${elapsed_seconds_str} s)`,
-					type: SnackbarType.GOOD,
-					durationMs: 2000,
-				}),
-			);
+				RobotRequest._dispatcher(setIsDataSaving(true));
+				RobotRequest._dispatcher(
+					setSnackBar(<SnackbarState>{
+						message: `Saving session! (Recording Length: ${elapsed_seconds_str} s)`,
+						type: SnackbarType.GOOD,
+						durationMs: 2000,
+					}),
+				);
 			}
 		}
 	}
@@ -236,57 +235,10 @@ export default class RobotRequest {
 	 */
 	public static async rightPaddle() {
 		if (await RobotRequest.makeRobotRequest("right_paddle")) {
-			
 			RobotRequest._dispatcher(
 				setSnackBar(<SnackbarState>{
 					message: `Emergency Stop paddle pressed!`,
 					type: SnackbarType.INFO,
-					durationMs: 2000,
-				}),
-			);
-		}
-	}
-
-	public static async saveSession() {
-		const res = await fetch(
-			`http://${Globals.getRobotAddr()}/save_session`,
-		);
-
-		const data = await res.json();
-
-		Logger.info("Response: ", JSON.stringify(data));
-
-		if (!res.ok) {
-			await RobotRequest.onIssue(data);
-		} else {
-			RobotRequest._dispatcher(setIsDataSaving(true));
-			RobotRequest._dispatcher(
-				setSnackBar(<SnackbarState>{
-					message: "Saving session!",
-					type: SnackbarType.GOOD,
-					durationMs: 2000,
-				}),
-			);
-		}
-	}
-
-	public static async discardSession() {
-		const res = await fetch(
-			`http://${Globals.getRobotAddr()}/discard_session`,
-		);
-
-		const data = await res.json();
-
-		Logger.info("Response: ", JSON.stringify(data));
-
-		if (!res.ok) {
-			await RobotRequest.onIssue(data);
-		} else {
-			RobotRequest._dispatcher(setIsDataSaving(false));
-			RobotRequest._dispatcher(
-				setSnackBar(<SnackbarState>{
-					message: "Discarding session!",
-					type: SnackbarType.WARNING,
 					durationMs: 2000,
 				}),
 			);

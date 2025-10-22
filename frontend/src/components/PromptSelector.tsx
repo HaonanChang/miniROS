@@ -122,22 +122,6 @@ export default function PromptSelector() {
 					))}
 				</Select>
 			</FormControl>
-
-			{/* <div className="flex flex-row gap-2 justify-end">
-				<Button
-					variant="contained"
-					color="primary"
-					className="mt-2"
-					disabled={isLoading || prompt === ""}
-					sx={{
-						textTransform: "none",
-					}}
-					onClick={onUpdatePrompt}
-				>
-					<ArrowUpward />
-					<p className="ml-2">Update</p>
-				</Button>
-			</div> */}
 		</div>
 	);
 }
