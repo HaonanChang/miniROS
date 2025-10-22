@@ -43,7 +43,7 @@ class Robot(ABC):
 
     ###################### Required Methods ######################
     @abstractmethod
-    def initialize(self, driver_config: Any):
+    def initialize(self, robot_config: Any):
         pass
 
     @abstractmethod
@@ -67,32 +67,32 @@ class Robot(ABC):
     def reboot(self):
         pass
 
-    def pause(self):
-        """
-        [Optional]
-        Pause the robot. If not implemented, it will call stop() by default.
-        """
-        self.stop()
-
     def is_active(self) -> bool:
         """
         Check if the robot is active.
         """
         raise NotImplementedError("is_active method is not implemented")
 
-    def is_state_valid(self, state: RobotState) -> bool:
-        """
-        Check if the robot state is valid given the robot type.
-        """
-        return True
+    @property
+    def num_dof(self) -> int:
+        raise NotImplementedError("num_dof method is not implemented")
 
-    def is_action_valid(self, action: RobotAction) -> bool:
-        """
-        Check if the robot action is valid given the robot type.
-        """
-        return True
+    @property
+    def max_control_freq(self) -> int:
+        raise NotImplementedError("max_control_freq method is not implemented")
+
+    @property
+    def max_read_freq(self) -> int:
+        raise NotImplementedError("max_read_freq method is not implemented")
 
     ###################### Optional Methods ######################
+    def pause(self):
+        """
+        [Optional]
+        Pause the robot. If not implemented, it will call stop() by default.
+        """
+        self.stop()
+        
     def set_safe_speed(self):
         """
         [Optional]
@@ -114,17 +114,17 @@ class Robot(ABC):
         """
         pass
 
-    @property
-    def num_dof(self) -> int:
-        raise NotImplementedError("num_dof method is not implemented")
+    def is_state_valid(self, state: RobotState) -> bool:
+        """
+        Check if the robot state is valid given the robot type.
+        """
+        return True
 
-    @property
-    def max_control_freq(self) -> int:
-        raise NotImplementedError("max_control_freq method is not implemented")
-
-    @property
-    def max_read_freq(self) -> int:
-        raise NotImplementedError("max_read_freq method is not implemented")
+    def is_action_valid(self, action: RobotAction) -> bool:
+        """
+        Check if the robot action is valid given the robot type.
+        """
+        return True
 
 
 class Streamer(ABC):

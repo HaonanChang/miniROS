@@ -16,6 +16,7 @@ from loguru import logger
 from mini_ros.common.device import Robot, RobotState, RobotAction
 from mini_ros.common.error import RobotExecuteError
 from mini_ros.utils.time_util import TimeUtil
+from mini_ros.utils.io_util import IOUtil
 
 root_path = os.path.dirname(os.path.abspath(__file__))
 root_path = os.path.join(root_path, "../../../..")
@@ -24,7 +25,6 @@ sys.path.append(root_path)
 
 from third_party.marvin_sdk.fx_robot import Marvin_Robot
 from third_party.marvin_sdk.structure_data import DCSS
-# from src.inputs.marvin_state_output import MarvinStateOutput
 
 
 @dataclass
@@ -49,12 +49,16 @@ class MarvinRobotConfig:
         [90.0, -70.0, -90.0, -90.0, 0.0, 0.0, 0.0],
         [-90.0, -70.0, 90.0, -90.0, 0.0, 0.0, 0.0]
     ])
+    mute_skd_log: bool = True
+    is_new_version: bool = True
 
 
 class MarvinRobot(Robot):
     """
     Marvin robot interface.
     """
+    name: str = "marvin"
+
     def __init__(self, config: MarvinRobotConfig):
         self.port = config.port
         self.baudrate = config.baudrate
@@ -63,13 +67,15 @@ class MarvinRobot(Robot):
         self.vel_ratio = config.vel_ratio
         self.control_mode = config.control_mode
         self.dynamic_params = config.dynamic_params
+        self.mute_skd_log = config.mute_skd_log
+        self.is_new_version = config.is_new_version
         self.mode = "init"
         # Active: Can be controlled
         self._active_event = threading.Event()
         # Connect: Connected to the robot
         self._connect_event = threading.Event()
 
-    def initialize(self):
+    def initialize(self, driver_config = None):
         self.robot = Marvin_Robot()
         self.robot.connect(self.port)
         time.sleep(1.0)
@@ -92,6 +98,8 @@ class MarvinRobot(Robot):
         self._launch_robot()
 
     def _launch_robot(self):
+        if self.mute_skd_log:
+            IOUtil.mute()
         # Clear error
         self.robot.clear_error("A")
         self.robot.clear_error("B")
@@ -104,6 +112,9 @@ class MarvinRobot(Robot):
         self.robot.send_cmd()
         time.sleep(0.25)
 
+        if self.mute_skd_log:
+            IOUtil.restore()
+
         # Set control mode
         self.robot.clear_set()
         if self.control_mode == "impedance":
@@ -113,11 +124,16 @@ class MarvinRobot(Robot):
         else:
             raise ValueError(f"Invalid control mode: {self.control_mode}")
 
+        if self.mute_skd_log:
+            IOUtil.mute()
         # Set velocity and acceleration
         self.robot.set_vel_acc("A", self.vel_ratio, self.acc_ratio)
         self.robot.set_vel_acc("B", self.vel_ratio, self.acc_ratio)
         self.robot.send_cmd()
+
         time.sleep(0.25)
+        if self.mute_skd_log:
+            IOUtil.restore()
 
         # Set active event
         self._active_event.set()
@@ -126,6 +142,9 @@ class MarvinRobot(Robot):
         return self._active_event.is_set()
 
     def get_state(self, timeout: float = 1.0) -> RobotState:
+        """
+        timestamp should be the recv time.
+        """
         outputs = self.robot.subscribe(DCSS())["outputs"]
         timestamp = TimeUtil.now().timestamp()
         return RobotState(
@@ -144,13 +163,19 @@ class MarvinRobot(Robot):
         action = RobotAction(timestamp=0, joint_cmds=[90.0, -70.0, -90.0, -110.0, 90.0, 0.0, 0.0, -90.0, -70.0, 90.0, -110.0, -90.0, 0.0, 0.0])
         self.apply_action(action)
         """
+        if self.mute_skd_log:
+            IOUtil.mute()
         self.robot.clear_set()
         if self.control_mode == "impedance" or self.control_mode == "position":
+            left_action = action.joint_cmds[:7]
+            right_action = action.joint_cmds[7:]
+            left_action = self._joint_project_clip(left_action, self.is_new_version)
+            right_action = self._joint_project_clip(right_action, self.is_new_version)
             self.robot.set_joint_cmd_pose(
-                "A", joints=action.joint_cmds[:7]
+                "A", joints=left_action
             )
             self.robot.set_joint_cmd_pose(
-                "B", joints=action.joint_cmds[7:]
+                "B", joints=right_action
             )
         else:
             raise ValueError(f"Invalid control mode: {self.control_mode}")
@@ -158,6 +183,8 @@ class MarvinRobot(Robot):
         self.robot.send_cmd()
         action = copy.deepcopy(action)
         action.timestamp = timestamp
+        if self.mute_skd_log:
+            IOUtil.restore()
         return action
 
     def stop(self):
@@ -179,11 +206,15 @@ class MarvinRobot(Robot):
         self._active_event.clear()
 
     def _pause_robot(self):
+        if self.mute_skd_log:
+            IOUtil.mute()
         # Set robot to stop state
         self.robot.clear_set()
         self.robot.set_state("A", 0)
         self.robot.set_state("B", 0)
         self.robot.send_cmd()
+        if self.mute_skd_log:
+            IOUtil.restore()
         time.sleep(0.25)
         self.mode = "init"  # Set mode back to init after pause
 
@@ -197,20 +228,28 @@ class MarvinRobot(Robot):
         """
         Set robot to safe mode.
         """
+        if self.mute_skd_log:
+            IOUtil.mute()
         self.robot.clear_set()
         self.robot.set_vel_acc("A", 10, 10)
         self.robot.set_vel_acc("B", 10, 10)
         self.robot.send_cmd()
+        if self.mute_skd_log:
+            IOUtil.restore()
         time.sleep(0.25)
 
     def set_normal_speed(self):
         """
         Set robot to normal mode.
         """
+        if self.mute_skd_log:
+            IOUtil.mute()
         self.robot.clear_set()
         self.robot.set_vel_acc("A", self.vel_ratio, self.acc_ratio)
         self.robot.set_vel_acc("B", self.vel_ratio, self.acc_ratio)
         self.robot.send_cmd()
+        if self.mute_skd_log:
+            IOUtil.restore()
         time.sleep(0.25)
 
     def switch_mode(self, mode: str):
@@ -244,6 +283,8 @@ class MarvinRobot(Robot):
         """
         Set robot to drag mode.
         """
+        if self.mute_skd_log:
+            IOUtil.mute()
         self.robot.clear_set()
         self.robot.set_joint_kd_params(
             arm="A", K=[2, 2, 2, 1.6, 1, 1, 1], D=[0.4, 0.4, 0.4, 0.3, 0.2, 0.2, 0.2]
@@ -259,12 +300,17 @@ class MarvinRobot(Robot):
         self.robot.set_drag_space(arm="B", dgType=1)
         self.robot.send_cmd()
         time.sleep(0.25)
+
+        if self.mute_skd_log:
+            IOUtil.restore()
         self.mode = "drag"
 
     def _unset_drag_mode(self):
         """
         Unset robot from drag mode.
         """
+        if self.mute_skd_log:
+            IOUtil.mute()
         self.robot.clear_set()
         self.robot.set_drag_space(arm="A", dgType=0)
         self.robot.set_drag_space(arm="B", dgType=0)
@@ -280,12 +326,17 @@ class MarvinRobot(Robot):
         )
         self.robot.send_cmd()
         time.sleep(0.25)
+
+        if self.mute_skd_log:
+            IOUtil.restore()
         self.mode = "impedance"
 
     def _set_impedance_mode(self):
         """
         Set robot to impedance mode.
         """
+        if self.mute_skd_log:
+            IOUtil.mute()
         self.robot.clear_set()
         self.robot.set_state("A", 3)
         self.robot.set_state("B", 3)
@@ -300,6 +351,8 @@ class MarvinRobot(Robot):
         )
         self.robot.send_cmd()
         time.sleep(0.25)
+        if self.mute_skd_log:
+            IOUtil.restore()
         self.mode = "impedance"
 
 
@@ -307,6 +360,8 @@ class MarvinRobot(Robot):
         """
         Set robot to position mode.
         """
+        if self.mute_skd_log:
+            IOUtil.mute()
         self.robot.clear_set()
         self.robot.set_state("A", 1)
         self.robot.set_state("B", 1)
@@ -322,6 +377,8 @@ class MarvinRobot(Robot):
         )
         self.robot.send_cmd()
         time.sleep(0.25)
+        if self.mute_skd_log:
+            IOUtil.restore()
         self.mode = "position"
 
     @property
@@ -338,3 +395,42 @@ class MarvinRobot(Robot):
     @property
     def max_read_freq(self) -> int:
         return 200
+
+    def _joint_project_clip(self, joints_rad, is_new_version: bool = False):
+        """
+        Project joints on the joint boundary. Dependend on the version, we may have different methods.
+        """
+        ## Perform j6-j7 joint clipping
+        j6 = joints_rad[5]
+        j7 = joints_rad[6]
+        j6 = np.clip(j6, -np.pi / 3, np.pi / 3)
+        j7 = np.clip(j7, -np.pi / 2, np.pi / 2)
+        j6_sign = 1 if j6 >= 0 else -1
+        j7_sign = 1 if j7 >= 0 else -1
+        X0 = np.abs(j6)
+        Y0 = np.abs(j7)
+
+        # Linear range: Y = AX + B:
+        B = 78 / 180 * np.pi if not is_new_version else 109 / 180 * np.pi
+        A = -1
+
+        if Y0 > (A * X0 + B):
+            # need projection
+            X = (A * Y0 + X0 - A * B) / (A**2 + 1)
+            Y = A * X + B
+            if X < 0:
+                X = 0
+                Y = B
+            elif Y < 0:
+                X = -B / A
+                Y = 0
+            elif X < 0 and Y < 0:
+                raise ValueError("Theoretically impossible.")
+            j6 = j6_sign * X
+            j7 = j7_sign * Y
+        else:
+            j6 = j6_sign * X0
+            j7 = j7_sign * Y0
+        joints_rad[5] = j6
+        joints_rad[6] = j7
+        return joints_rad

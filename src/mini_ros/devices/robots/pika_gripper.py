@@ -42,6 +42,8 @@ class PikaGripper(Robot):
     """
     Pika gripper interface.
     """
+    name: str = "pika"
+    
     def __init__(
         self,
         config: PikaGripperConfig = PikaGripperConfig(),
@@ -62,14 +64,7 @@ class PikaGripper(Robot):
                 logger.info("Multiple serial ports found. Using the first one.")
             self.port = ports[0]
 
-        self.serial = serial.Serial(
-            port=self.port,
-            baudrate=self.baudrate,
-            timeout=self.timeout,
-            bytesize=serial.EIGHTBITS,
-            parity=serial.PARITY_NONE,
-            stopbits=serial.STOPBITS_ONE,
-        )
+        self.serial = None
         self._buffer: str = ""
         self._motor_data: dict[str, float | str] = {
             "Speed": 0.0,  # current speed（rad/s）
@@ -83,9 +78,61 @@ class PikaGripper(Robot):
             "Status": "0x00",  # motor driver status
             "BusCurrent": 0,  # bus current(mA)
         }
-        self._shutdown_event = threading.Event()
+        # Active: Can be controlled
+        self._active_event = threading.Event()
+        self._connect_event = threading.Event()
+
+    def initialize(self, driver_config = None):
+        if self._connect_event.is_set():
+            # Can't be double initialized
+            logger.warning("Pika gripper is already initialized, can't be initialized again")
+            return
+        # Setup communication
+        self.serial = serial.Serial(
+            port=self.port,
+            baudrate=self.baudrate,
+            timeout=self.timeout,
+            bytesize=serial.EIGHTBITS,
+            parity=serial.PARITY_NONE,
+            stopbits=serial.STOPBITS_ONE,
+        )
         self._distance_0 = self.get_distance(0)
         self.set_motor_torque(self.max_motor_torque_current)
+        self._connect_event.set()
+        self._read_thread = threading.Thread(target=self._read_loop)
+        self._read_thread.start()
+        time.sleep(0.25)
+    
+    def start(self) -> None:
+        if not self._connect_event.is_set():
+            # Can't be double started
+            logger.warning("Pika gripper is not connected, can't be started")
+            return
+        self._send_command(PIKACommandType.ENABLE.value)
+        self._active_event.set()
+        # Clear prev buffer
+        self._buffer = ""
+
+    def stop(self) -> None:
+        if not self._connect_event.is_set():
+            # Can't be double stopped
+            logger.warning("Pika gripper is already stopped, can't be stopped again")
+            return
+        self._active_event.clear()
+        self._connect_event.clear()
+        self._read_thread.join()
+        self._send_command(PIKACommandType.DISABLE.value)
+        self.serial.close()
+
+    def pause(self) -> None:
+        if not self.is_active():
+            # Can't be double paused
+            logger.warning("Pika gripper is not active, can't be paused")
+            return
+        self._active_event.clear()
+
+    def is_active(self) -> bool:
+        return self._active_event.is_set() and self._connect_event.is_set()
 
     def _send_command(self, command_type: PIKACommandType, value: float = 0.0) -> bool:
         try:
@@ -147,29 +194,12 @@ class PikaGripper(Robot):
         width = math.sqrt(0.058**2 - (height - 0.01456) ** 2) + width_d
         return width
 
-    def start(self) -> None:
-        self._thread = threading.Thread(target=self._get_data)
-        self._thread.start()
-        time.sleep(1)
-        self._send_command(PIKACommandType.ENABLE.value)
-
-    def stop(self) -> None:
-        self._shutdown_event.set()
-        self._thread.join()
-        self._send_command(PIKACommandType.DISABLE.value)
-        self.serial.close()
-
-    def is_active(self) -> bool:
-        return not self._shutdown_event.is_set()
-
-    def _get_data(self) -> None:
-        while self.is_active():
-            start_time = time.time()
+    def _read_loop(self) -> None:
+        while self._connect_event.is_set():
             try:
                 n_in_waiting = self.serial.in_waiting
-                logger.info(f"n_in_waiting: {n_in_waiting}")
                 if n_in_waiting <= 0:
-                    time.sleep(0.001)
+                    # time.sleep(0.001)
                     continue
                 data = self.serial.read(size=n_in_waiting if self.read_size == 0 else self.read_size)
                 if data:
@@ -185,7 +215,7 @@ class PikaGripper(Robot):
             except Exception as e:
                 logger.error("Error getting data: {}", e)
 
-    def get_state(self) -> RobotState:
+    def get_state(self, timeout: float = 1.0) -> RobotState:
         with self.data_lock:
             angle = float(self._motor_data["Position"])
             speed = float(self._motor_data["Speed"])
@@ -298,16 +328,13 @@ class PikaGripper(Robot):
         else:
             logger.error(f"cannot find the angle for target gripper width {gripper_width:.2f} m")
             raise RobotExecuteError(f"cannot find the angle for target gripper width {gripper_width:.2f} m", code="GRIPPER_ANGLE_NOT_FOUND")
-        
+
     def set_zero(self) -> None:
         self._send_command(PIKACommandType.SET_ZERO.value)
 
     def reboot(self):
         pass
 
-    def initialize(self, driver_config):
-        pass
-    
     @property
     def num_dof(self) -> int:
         return 1
