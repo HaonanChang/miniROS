@@ -1,5 +1,7 @@
 import asyncio
 import datetime
+import time
+import threading
 from typing import Optional
 
 from loguru import logger
@@ -89,3 +91,39 @@ class RateLimiter:
             self.is_busy = False
             if LOG_TRACE_INFO:
                 logger.info(f"Id: {id(self)}| RateLimiter Unsetting busy", trace_info)
+
+
+class RateLimiterSync:
+    """
+    Sync version of RateLimiter.
+    """
+    def __init__(self, rate_hz: float) -> None:
+        self.rate_hz: float = rate_hz
+        self.prev_time: Optional[datetime.datetime] = None
+        self.is_busy: bool = False
+        self.sleep_time_ms: float = 0
+        self.start_time: datetime.datetime = None
+        self.tick_start_time: datetime.datetime = TimeUtil.now()
+        self.ticks: int = 0
+
+    def interval_ms(self) -> float:
+        if not self.sleep_time_ms:
+            self.sleep_time_ms = 1000.0 / self.rate_hz
+
+        return self.sleep_time_ms
+
+    def wait_for_tick(self, trace_info: str = "") -> None:
+        """
+        Wait for the next tick to be ready.
+        """
+        self.ticks += 1
+        if self.ticks > 1:
+            target_time = self.start_time + datetime.timedelta(
+                milliseconds=(self.ticks - 1) * self.interval_ms()
+            )
+            if target_time > TimeUtil.now():
+                time.sleep((target_time - TimeUtil.now()).total_seconds())
+            self.tick_start_time = TimeUtil.now()
+        else:
+            self.tick_start_time = TimeUtil.now()
+            self.start_time = TimeUtil.now()

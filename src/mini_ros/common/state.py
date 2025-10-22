@@ -61,7 +61,7 @@ class RobotAction:
     Robot action
     """
     # 1: Timestamp
-    timestamp: float
+    timestamp: float = 0.0
     # (N,): (N is the number of joints)
     # Joint-space Position Control
     joint_cmds: list[float] = field(default_factory=list)

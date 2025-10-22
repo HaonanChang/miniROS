@@ -64,12 +64,29 @@ class MarvinRobot(Robot):
         self.control_mode = config.control_mode
         self.dynamic_params = config.dynamic_params
         self.mode = "init"
+        # Active: Can be controlled
         self._active_event = threading.Event()
+        # Connect: Connected to the robot
+        self._connect_event = threading.Event()
 
     def initialize(self):
         self.robot = Marvin_Robot()
         self.robot.connect(self.port)
         time.sleep(1.0)
+        # Check connection
+        state = self.get_state()
+        if state is None or not self.is_state_valid(state):
+            logger.error("Failed to initialize Marvin robot")
+            return
+        self._connect_event.set()
+        return True
+
+    def is_state_valid(self, state: RobotState) -> bool:
+        """
+        Check if the Marvin's robot state is valid.
+        If not connected, the marvin's joint positions should be all zeros.
+        """
+        return np.all(state.joint_positions != 0)
 
     def start(self):
         self._launch_robot()
@@ -110,7 +127,9 @@ class MarvinRobot(Robot):
 
     def get_state(self, timeout: float = 1.0) -> RobotState:
         outputs = self.robot.subscribe(DCSS())["outputs"]
+        timestamp = TimeUtil.now().timestamp()
         return RobotState(
+            timestamp=timestamp,
             joint_positions=np.concatenate([outputs[0]["fb_joint_pos"], outputs[1]["fb_joint_pos"]]),
             joint_velocities=np.concatenate([outputs[0]["fb_joint_vel"], outputs[1]["fb_joint_vel"]]),
             # joint_efforts=np.concatenate([outputs[0]["fb_joint_torque"], outputs[1]["fb_joint_torque"]]),
@@ -120,6 +139,10 @@ class MarvinRobot(Robot):
     def apply_action(self, action: RobotAction) -> RobotAction:
         """
         Action is in degree.
+        Dim (14,): The first 7 are left arm, the last 7 are right arm.
+        Example:
+        action = RobotAction(timestamp=0, joint_cmds=[90.0, -70.0, -90.0, -110.0, 90.0, 0.0, 0.0, -90.0, -70.0, 90.0, -110.0, -90.0, 0.0, 0.0])
+        self.apply_action(action)
         """
         self.robot.clear_set()
         if self.control_mode == "impedance" or self.control_mode == "position":
@@ -138,11 +161,20 @@ class MarvinRobot(Robot):
         return action
 
     def stop(self):
+        if not self._connect_event.is_set():
+            # Can't be double stopped
+            logger.warning("Marvin robot is not connected, can't be stopped")
+            return
         self._pause_robot()
         self.robot.release_robot()
         self._active_event.clear()
+        self._connect_event.clear()
 
     def pause(self):
+        if not self.is_active():
+            # Can't be double paused
+            logger.warning("Marvin robot is not active, can't be paused")
+            return
         self._pause_robot()
         self._active_event.clear()
 

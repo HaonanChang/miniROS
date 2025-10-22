@@ -2,7 +2,7 @@ import os
 import time
 import numpy as np
 from mini_ros.common.state import RobotAction
-from mini_ros.test.frequency_test import MultThreadFreqTest, AsyncFreqTest
+from mini_ros.test.frequency_test import MultThreadFreqTest, AsyncFreqTest, create_timed_joint_cmds_traj
 from mini_ros.devices.robots.pika_gripper import PikaGripper, PikaGripperConfig
 from loguru import logger
 import datetime
@@ -11,17 +11,6 @@ import sys
 
 logger.remove()  # Remove default handler
 logger.add(sys.stderr, level="ERROR")  # Only INFO and above will be shown
-
-
-def create_timed_joint_cmds_traj(start_joint_point, end_joint_point, num_points, num_repeat):
-    start_joint_cmds = np.linspace(start_joint_point, end_joint_point, num_points)
-    end_joint_cmds = np.linspace(end_joint_point, start_joint_point, num_points)
-    joint_cmds_traj = []
-    for i in range(num_repeat):
-        joint_cmds_traj += start_joint_cmds.tolist()
-        joint_cmds_traj += end_joint_cmds.tolist()
-    joint_cmds_traj = np.array(joint_cmds_traj)
-    return joint_cmds_traj
 
 
 def single_multi_thread_test(control_freq, read_freq, exp_idx=0, export_folder=""):
