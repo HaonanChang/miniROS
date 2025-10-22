@@ -3,3 +3,5 @@ src/mini_ros.egg-info
 *.pyc
 
 .vscode/*
+
+debug/*

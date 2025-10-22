@@ -43,7 +43,7 @@ class PikaGripper(Robot):
     """
     def __init__(
         self,
-        config: PikaGripperConfig,
+        config: PikaGripperConfig = PikaGripperConfig(),
     ) -> None:
         self.port = config.port
         self.baudrate = config.baudrate
@@ -136,6 +136,8 @@ class PikaGripper(Robot):
                 time.sleep(0.0001)
             except Exception as e:
                 logger.error("Error getting data: {}", e)
+                # Throw the error
+                raise e
         # Update current
         with self.data_guard:
             self._motor_current = current
@@ -215,6 +217,7 @@ class PikaGripper(Robot):
         """
         Gripper control is input with a value between 0 and 1.
         """
+        logger.info("applying action.")
         gripper_width = action.joint_cmds[0]  # (0~1)
         gripper_width = np.clip(gripper_width, 0, 1) * PIKA_GRIPPER_WIDTH
 
@@ -270,6 +273,7 @@ class PikaGripper(Robot):
             robot_action = copy.deepcopy(action)
             robot_action.timestamp = timestamp
             self._set_motor_angle(found_angle)
+            logger.info(f"Applying action {gripper_width}")
             return robot_action
         else:
             logger.error(f"cannot find the angle for target gripper width {gripper_width:.2f} m")

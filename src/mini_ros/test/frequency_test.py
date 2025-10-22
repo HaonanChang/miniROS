@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import threading
 import time
 import numpy as np
+from loguru import logger
 from mini_ros.utils.time_util import TimeUtil
 from mini_ros.common.device import Robot
 from mini_ros.common.state import RobotAction, RobotState
@@ -18,17 +19,30 @@ class MultThreadTest:
         self.robot = robot
         self.control_freq = control_freq
         self.read_freq = read_freq
-        self.control_thread = threading.Thread(target=self.control_loop)
-        self.read_thread = threading.Thread(target=self.read_loop)
-        self.control_thread.start()
-        self.read_thread.start()
+        self.control_thread = None
+        self.read_thread = None
         self.joint_cmds_traj = joint_cmds_traj
 
         # Log
         self._control_log: list[RobotAction] = []
         self._read_log: list[RobotState] = []
+    
+    def start(self):
+        # self.control_thread = threading.Thread(target=self.control_loop)
+        # self.read_thread = threading.Thread(target=self.read_loop)
+        # self.control_thread.start()
+        # self.read_thread.start()
+
+        self.control_read_thread = threading.Thread(target=self.control_read_loop)
+        self.control_read_thread.start()
+
+    def join(self):
+        # self.control_thread.join()
+        # self.read_thread.join()
+        self.control_read_thread.join()
 
     def control_loop(self) -> None:
+        start_time = time.time()
         for joint_cmds in self.joint_cmds_traj:
             robot_action = RobotAction(timestamp=TimeUtil.now().timestamp(), joint_cmds=joint_cmds)
             self._control_log.append(robot_action)
@@ -36,15 +50,20 @@ class MultThreadTest:
             current_time = time.time()
             if current_time - start_time >= 1 / self.control_freq:
                 start_time = current_time
-                self.robot.apply_action(RobotAction(timestamp=TimeUtil.now().timestamp(), joint_cmds=[0]))
             else:
                 # Wait for the control interval
-                time.sleep(0.001)
+                time.sleep(0.002)
+        logger.info("Quitting control loop.")
+        # Set stop
+        self.robot.stop()
 
     def read_loop(self) -> None:
         start_time = time.time()
-        while True:
-            state = self.robot.get_state()
+        while self.robot.is_active():
+            try:
+                state = self.robot.get_state()
+            except Exception as e:
+                break
             self._read_log.append(state)
             current_time = time.time()
             if current_time - start_time >= 1 / self.read_freq:
@@ -53,6 +72,30 @@ class MultThreadTest:
             else:
                 # Wait for the read interval
                 time.sleep(0.001)
+        logger.info("Quitting read loop.")
+
+    def control_read_loop(self):
+        # Call read & control sequentially
+        start_time = time.time()
+        for joint_cmds in self.joint_cmds_traj:
+            robot_action = RobotAction(timestamp=TimeUtil.now().timestamp(), joint_cmds=joint_cmds)
+            self.robot.apply_action(robot_action)
+            self._control_log.append(robot_action)
+
+            state = self.robot.get_state()
+            self._read_log.append(state)
+
+            # Rate
+            current_time = time.time()
+            if current_time - start_time >= 1 / self.control_freq:
+                start_time = current_time
+            else:
+                # Wait for the control interval
+                time.sleep(0.002)
+            
+        logger.info("Quitting read loop.")
+        self.robot.stop()
+
 
     def generate_compare_fig(self, compare_type: str = "joint_cmds") -> None:
         """
