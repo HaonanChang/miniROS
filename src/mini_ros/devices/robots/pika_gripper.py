@@ -10,7 +10,7 @@ import json
 from dataclasses import dataclass
 from enum import Enum
 from loguru import logger
-from mini_ros.common.device import Robot
+from mini_ros.common.device import Robot, Recorder
 from mini_ros.common.error import RobotExecuteError
 from mini_ros.utils.time_util import TimeUtil
 from mini_ros.common.state import RobotState, RobotAction
@@ -52,9 +52,10 @@ class PikaGripper(Robot):
         self.baudrate = config.baudrate
         self.timeout = config.timeout
         self.max_motor_torque_current = config.max_motor_torque_current
-        self.read_size = config.read_size
-        self.data_lock = threading.Lock()
-        self.polling_rate = 100
+        self.read_size: int = config.read_size
+        self.data_lock: threading.Lock = threading.Lock()
+        self.polling_rate: int = 100
+        self.recorder: Recorder = None
         if self.port is None:
             # Find the first available port
             ports = glob.glob("/dev/ttyUSB*")
@@ -82,7 +83,7 @@ class PikaGripper(Robot):
         self._active_event = threading.Event()
         self._connect_event = threading.Event()
 
-    def initialize(self, driver_config = None):
+    def initialize(self):
         if self._connect_event.is_set():
             # Can't be double initialized
             logger.warning("Pika gripper is already initialized, can't be initialized again")
@@ -103,7 +104,10 @@ class PikaGripper(Robot):
         self._read_thread.start()
         time.sleep(0.25)
     
-    def start(self) -> None:
+    def start(self, episode_name: str) -> None:
+        """
+        NOTE: Start is a blocking call.
+        """
         if not self.is_alive():
             # Can't be double started
             logger.warning("Pika gripper is not connected, can't be started")
@@ -112,8 +116,13 @@ class PikaGripper(Robot):
         self._active_event.set()
         # Clear prev buffer
         self._buffer = ""
+        if self.recorder is not None:
+            self.recorder.start(episode_name)
 
     def stop(self) -> None:
+        """
+        NOTE: Stop is a blocking call.
+        """
         if not self.is_alive():
             # Can't be double stopped
             logger.warning("Pika gripper is already stopped, can't be stopped again")
@@ -123,14 +132,21 @@ class PikaGripper(Robot):
         self._read_thread.join()
         self._send_command(PIKACommandType.DISABLE.value)
         self.serial.close()
+        if self.recorder is not None:
+            self.recorder.stop()
 
     def pause(self) -> None:
+        """
+        NOTE: Pause is a blocking call.
+        """
         if not self.is_active():
             # Can't be double paused
             logger.warning("Pika gripper is not active, can't be paused")
             return
-        logger.info(f"Pausing Pika gripper: {self.name}: Active: {self.is_active()}, Alive: {self.is_alive()}")
         self._active_event.clear()
+        logger.info(f"Pausing Pika gripper: {self.name}: Active: {self.is_active()}, Alive: {self.is_alive()}")
+        if self.recorder is not None:
+            self.recorder.save()
 
     def is_active(self) -> bool:
         return self._active_event.is_set()
@@ -219,7 +235,7 @@ class PikaGripper(Robot):
             except Exception as e:
                 logger.error("Error getting data: {}", e)
 
-    def get_state(self, timeout: float = 1.0) -> RobotState:
+    def get_state(self, timeout: float = 1.0, is_record: bool = False) -> RobotState:
         with self.data_lock:
             angle = float(self._motor_data["Position"])
             speed = float(self._motor_data["Speed"])
@@ -227,12 +243,15 @@ class PikaGripper(Robot):
         gripper_width = (self.get_distance(angle) - self.get_distance(0)) * 2
         # Get timestamp
         timestamp = TimeUtil.now().timestamp()
-        return RobotState(
+        robot_state = RobotState(
             joint_positions=[gripper_width / PIKA_GRIPPER_WIDTH],
             joint_velocities=[speed],
             joint_currents=[current],
             timestamp=timestamp,
         )
+        if is_record and self.recorder is not None:
+            self.recorder.put(robot_state, "robot_state")
+        return robot_state
 
     def set_motor_angle(self, rad: float) -> None:
         with self.data_lock:
@@ -272,7 +291,7 @@ class PikaGripper(Robot):
 
         return self._send_command(PIKACommandType.CURRENT.value, current)
 
-    def apply_action(self, action: RobotAction) -> RobotAction:
+    def apply_action(self, action: RobotAction, is_record: bool = False) -> RobotAction:
         gripper_width = action.joint_cmds[0]  # (0~1)
         gripper_width = np.clip(gripper_width, 0, 1) * PIKA_GRIPPER_WIDTH
 
@@ -328,6 +347,8 @@ class PikaGripper(Robot):
             timestamp = TimeUtil.now().timestamp()
             robot_action = copy.deepcopy(action)
             robot_action.timestamp = timestamp
+            if is_record and self.recorder is not None:
+                self.recorder.put(robot_action, "robot_action")
             return robot_action
         else:
             logger.error(f"cannot find the angle for target gripper width {gripper_width:.2f} m")

@@ -4,11 +4,13 @@ Handle compression and serialization of data & deserialization.
 """
 import enum
 import queue
+from dataclasses import dataclass
 import pickle
 from mini_ros.common.state import RobotAction, RobotState
 from typing import Dict, Any, Union
 import threading
 from loguru import logger
+import os
 
 
 class RecordStyle(enum.Enum):
@@ -18,10 +20,13 @@ class RecordStyle(enum.Enum):
     WORLD_ENGINE_RDC = 0
 
 
+@dataclass
 class RecorderConfig:
-    save_dir: str
-    save_style: RecordStyle
-    buffer_size: int = 72000  # (20 mins for 60 fps)
+    name: str
+    fps: int
+    max_episode_length: int  # in seconds
+    data_root_dir: str
+    record_style: RecordStyle = RecordStyle.WORLD_ENGINE_RDC
 
 
 class EpisodeRecorder:
@@ -30,21 +35,17 @@ class EpisodeRecorder:
     Caches the data for a whole episode, and save it to the given path after the episode ends.
     Handle compression and serialization of data & deserialization.
     """
-    def __init__(self, save_style: RecordStyle):
-        self.save_style = save_style
+    def __init__(self, config: RecorderConfig):
+        self.name = config.name
+        self.record_style = config.record_style
+        self.buffer_size = config.fps * config.max_episode_length
+        self.data_root_dir = config.data_root_dir
+        self.episode_name = ""
         self.data_buffers: Dict[str, queue.Queue[Any]] = {
         }
         self.io_mutex = threading.Lock()
         self.is_active_event = threading.Event()
         self.data_folder = None
-
-    def switch_data_folder(self, data_folder: str):
-        """Select the dumping place"""
-        if self.is_active():
-            logger.warning("Recorder is active, can't switch data folder")
-            return
-        with self.io_mutex:
-            self.data_folder = data_folder
 
     def is_active(self) -> bool:
         """
@@ -52,42 +53,52 @@ class EpisodeRecorder:
         """
         return self.is_active_event.is_set()
 
-    def start(self):
+    def start(self, episode_name: str):
         """
-        Start the recorder.
-        """        
+        NOTE: Start is a blocking call.
+        """       
         if self.is_active():
             logger.warning("Recorder is already active, can't start again")
             return
+        logger.info(f"Starting recorder: {self.name}")
         # Clear the data buffers
         with self.io_mutex:
             self.data_buffers = {key: queue.Queue(maxsize=self.buffer_size) for key in self.data_buffers.keys()}
+            self.episode_name = episode_name
         self.is_active_event.set()
 
     def stop(self):
+        logger.info(f"Stopping recorder: {self.name}")
         self.is_active_event.clear()
 
     def put(self, data: Any, key: str):
         """
         Put the data into the data buffer.
+        NOTE: Put must be a non-blocking call. 
+        Because it will be called in other time-sensitive threads.
         """
         if not self.is_active():
             logger.warning("Recorder is not active, can't put data")
             return
-        with self.io_mutex:
-            if key not in self.data_buffers:
-                self.data_buffers[key] = queue.Queue(maxsize=self.buffer_size)
-            self.data_buffers[key].put(data)
+        else:
+            # logger.info(f"Putting data to recorder: {self.name}, key: {key}")
+            pass
+        # with self.io_mutex:
+        if key not in self.data_buffers:
+            self.data_buffers[key] = queue.Queue(maxsize=self.buffer_size)
+        self.data_buffers[key].put_nowait(data)
 
     def save(self) -> Any:
         """
         Save the data to the given path.
         Saving is blocking. It will set the active event to False.
         And occupy the io_mutex.
+        NOTE: Save is a blocking call.
         """
+        logger.info(f"Saving recorder: {self.name}, keys: {self.data_buffers.keys()}")
         self.is_active_event.clear()
         with self.io_mutex:
-            if self.save_style == RecordStyle.WORLD_ENGINE_RDC:
+            if self.record_style == RecordStyle.WORLD_ENGINE_RDC:
                 # World Engine RDC style:
                 # Save the data into pickle files.
                 for key, buffer in self.data_buffers.items():
@@ -96,10 +107,12 @@ class EpisodeRecorder:
                     data_list = []
                     while not buffer.empty():
                         data = buffer.get()
-                        if isinstance(data, RobotAction):
-                            serialized_data = self.compress(data, self.save_style)
-                            data_list.append(serialized_data)
-                    with open(f"{self.data_folder}/{key}.pkl", "wb") as f:
+                        serialized_data = self.compress(data, self.record_style)
+                        data_list.append(serialized_data)
+                    data_folder = f"{self.data_root_dir}/{self.episode_name}"
+                    os.makedirs(data_folder, exist_ok=True) 
+                    logger.info(f"Saving data to {data_folder}/{self.name}_{key}.pkl")
+                    with open(f"{data_folder}/{self.name}_{key}.pkl", "wb") as f:
                         pickle.dump(data_list, f)
 
     @classmethod

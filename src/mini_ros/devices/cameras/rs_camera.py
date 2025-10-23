@@ -87,7 +87,7 @@ class RSCamera(Camera):
     def is_alive(self) -> bool:
         return self._connect_event.is_set()
 
-    def initialize(self, driver_config: Any = None):
+    def initialize(self):
         """
         Build communications & setup camera config
         """
@@ -136,7 +136,10 @@ class RSCamera(Camera):
         frames = self._rs_pipeline.wait_for_frames()
         return frames
 
-    def start(self):
+    def start(self, episode_name: str):
+        """
+        NOTE: Start is a blocking call.
+        """
         if not self.is_alive():
             # Can't be double started
             logger.warning("Camera is not connected, can't be started")

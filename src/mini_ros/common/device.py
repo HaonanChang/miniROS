@@ -34,6 +34,50 @@ class Reader(ABC):
         pass
 
 
+class Recorder:
+    def __init__(self, config: Any):
+        pass
+
+    @abstractmethod
+    def initialize(self, config: Any):
+        pass
+
+    @abstractmethod
+    def start(self, episode_name: str):
+        """
+        NOTE: Start is a blocking call.
+        """
+        pass
+    
+    @abstractmethod
+    def stop(self):
+        """
+        NOTE: Stop is a blocking call.
+        """
+        pass
+    
+    @abstractmethod
+    def save(self):
+        """
+        NOTE: Save is a blocking call.
+        """
+        pass
+
+    @abstractmethod
+    def put(self, data: Any, name: str):
+        """
+        NOTE: Put must be a non-blocking call. 
+        Because it will be called in other time-sensitive threads.
+        """
+        pass
+
+    def is_active(self) -> bool:
+        """
+        Check if the recorder is active.
+        """
+        raise NotImplementedError("is_active method is not implemented")
+
+
 class Robot(ABC):
     """
     Base class for all robots.
@@ -41,22 +85,35 @@ class Robot(ABC):
     name: str
     is_full_duplex: bool = True
 
+    def __init__(self):
+        self.recorder: Recorder = None
+
+    def bind_recorder(self, recorder: Recorder):
+        self.recorder = recorder
+
     ###################### Required Methods ######################
     @abstractmethod
-    def initialize(self, driver_config: Any):
+    def initialize(self):
         pass
 
     @abstractmethod
-    def get_state(self, timeout: float = 1.0) -> RobotState:
-        # State can be hold in a pulling thread
+    def get_state(self, timeout: float = 1.0, is_record: bool = False) -> RobotState:
+        """
+        Get the state of the robot.
+        Args:
+            timeout: Timeout in seconds
+            is_record: Whether to record the state if binded with a recorder
+        Returns:
+            RobotState: The state of the robot
+        """
         pass
 
     @abstractmethod
-    def apply_action(self, action: RobotAction):
+    def apply_action(self, action: RobotAction, is_record: bool = False):
         pass
 
     @abstractmethod
-    def start(self):
+    def start(self, episode_name: str):
         pass
 
     @abstractmethod
@@ -133,33 +190,6 @@ class Robot(ABC):
         return True
 
 
-class Streamer(ABC):
-    """
-    Base class for all stream drivers. Stream driver has a long-running process and perform processing in callback.
-    """
-    name: str
-
-    @abstractmethod
-    def initialize(self, driver_config: Any):
-        pass
-
-    @abstractmethod
-    def start(self):
-        pass
-
-    @abstractmethod
-    def stop(self):
-        pass
-
-    @abstractmethod
-    def on_new_frame(self):
-        pass
-
-    @abstractmethod
-    def on_stream_stopped(self):
-        pass
-
-
 class Camera:
     """
     Base class for all cameras.
@@ -167,11 +197,15 @@ class Camera:
     name: str
 
     @abstractmethod
-    def initialize(self, driver_config: Any):
+    def initialize(self):
         pass
 
     @abstractmethod
-    def start(self):
+    def bind_recorder(self, recorder: Recorder):
+        pass
+
+    @abstractmethod
+    def start(self, episode_name: str):
         pass
 
     @abstractmethod
