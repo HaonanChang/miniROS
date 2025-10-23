@@ -104,7 +104,7 @@ class PikaGripper(Robot):
         time.sleep(0.25)
     
     def start(self) -> None:
-        if not self._connect_event.is_set():
+        if not self.is_alive():
             # Can't be double started
             logger.warning("Pika gripper is not connected, can't be started")
             return
@@ -114,7 +114,7 @@ class PikaGripper(Robot):
         self._buffer = ""
 
     def stop(self) -> None:
-        if not self._connect_event.is_set():
+        if not self.is_alive():
             # Can't be double stopped
             logger.warning("Pika gripper is already stopped, can't be stopped again")
             return
@@ -132,7 +132,10 @@ class PikaGripper(Robot):
         self._active_event.clear()
 
     def is_active(self) -> bool:
-        return self._active_event.is_set() and self._connect_event.is_set()
+        return self._active_event.is_set()
+        
+    def is_alive(self) -> bool:
+        return self._connect_event.is_set()
 
     def _send_command(self, command_type: PIKACommandType, value: float = 0.0) -> bool:
         try:
@@ -195,7 +198,7 @@ class PikaGripper(Robot):
         return width
 
     def _read_loop(self) -> None:
-        while self._connect_event.is_set():
+        while self.is_alive():
             try:
                 n_in_waiting = self.serial.in_waiting
                 if n_in_waiting <= 0:

@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 import numpy as np
-from mini_ros.common.state import RobotState, RobotAction
+from mini_ros.common.state import RobotState, RobotAction, CameraData
 
 
 ############################## Device Base Class ##############################
@@ -43,7 +43,7 @@ class Robot(ABC):
 
     ###################### Required Methods ######################
     @abstractmethod
-    def initialize(self, robot_config: Any):
+    def initialize(self, driver_config: Any):
         pass
 
     @abstractmethod
@@ -72,6 +72,12 @@ class Robot(ABC):
         Check if the robot is active.
         """
         raise NotImplementedError("is_active method is not implemented")
+
+    def is_alive(self) -> bool:
+        """
+        Check if the robot is alive.
+        """
+        raise NotImplementedError("is_alive method is not implemented")
 
     @property
     def num_dof(self) -> int:
@@ -154,7 +160,7 @@ class Streamer(ABC):
         pass
 
 
-class Camera(Streamer):
+class Camera:
     """
     Base class for all cameras.
     """
@@ -163,6 +169,53 @@ class Camera(Streamer):
     @abstractmethod
     def initialize(self, driver_config: Any):
         pass
+
+    @abstractmethod
+    def start(self):
+        pass
+
+    @abstractmethod
+    def stop(self):
+        pass
+
+    @abstractmethod
+    def pause(self):
+        pass
+
+    @abstractmethod
+    def get_frame(self) -> Any:
+        """
+        Polling from device
+        """
+        pass
+
+    @abstractmethod
+    def process_frame(self, frame: Any) -> CameraData:
+        """
+        Process the frame from device and return the camera data
+        """
+        pass
+
+    @abstractmethod
+    def save_data(self, path: Optional[str] = None):
+        """
+        Camera is IO-heavy, so we can choose to save the data locally on fly.
+        """
+        pass
+
+    @abstractmethod
+    def is_active(self) -> bool:
+        """
+        Check if the camera is active.
+        """
+        raise NotImplementedError("is_active method is not implemented")
+
+    @abstractmethod
+    def is_alive(self) -> bool:
+        """
+        Check if the camera is alive.
+        """
+        raise NotImplementedError("is_alive method is not implemented")
 
 ################################# Motor Device #################################
 @dataclass

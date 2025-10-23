@@ -2,7 +2,7 @@ import os
 import time
 import numpy as np
 from mini_ros.common.state import RobotAction
-from mini_ros.test.frequency_test import MultiThreadFreqTest, AsyncFreqTest, create_timed_joint_cmds_traj
+from mini_ros.test.robot_frequency_test import MultiThreadFreqTest, AsyncFreqTest, create_timed_joint_cmds_traj
 from mini_ros.devices.robots.pika_gripper import PikaGripper, PikaGripperConfig
 from mini_ros.devices.robots.marvin_robot import MarvinRobot, MarvinRobotConfig
 from loguru import logger

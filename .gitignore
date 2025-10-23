@@ -5,3 +5,5 @@ src/mini_ros.egg-info
 .vscode/*
 
 debug/*
+
+tmp_data/*

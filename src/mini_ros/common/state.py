@@ -77,6 +77,24 @@ class RobotAction:
     
 
 @dataclass
+class CameraData:
+    """
+    Camera data
+    """
+    # 1: Timestamp at camera chip
+    timestamp: float = 0
+    # 1: Timestamp recv by system
+    timestamp_in_system: float = 0
+    # (H, W, 3): (H is the height, W is the width)
+    color_image: np.ndarray | bytes = None
+    # (H, W): (H is the height, W is the width)
+    depth_image: np.ndarray | bytes = None
+    # meta info
+    width: int = 0
+    height: int = 0
+
+
+@dataclass
 class TimedData:
     """
     Timed data

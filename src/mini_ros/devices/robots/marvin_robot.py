@@ -94,52 +94,11 @@ class MarvinRobot(Robot):
         """
         return np.all(state.joint_positions != 0)
 
-    def start(self):
-        self._launch_robot()
-
-    def _launch_robot(self):
-        if self.mute_skd_log:
-            IOUtil.mute()
-        # Clear error
-        self.robot.clear_error("A")
-        self.robot.clear_error("B")
-        time.sleep(0.25)
-
-        # Set dynamic params
-        self.robot.clear_set()
-        self.robot.set_tool(arm="A", kineParams=[0, 0, 0, 0, 0, 0], dynamicParams=self.dynamic_params[0])
-        self.robot.set_tool(arm="B", kineParams=[0, 0, 0, 0, 0, 0], dynamicParams=self.dynamic_params[1])
-        self.robot.send_cmd()
-        time.sleep(0.25)
-
-        if self.mute_skd_log:
-            IOUtil.restore()
-
-        # Set control mode
-        self.robot.clear_set()
-        if self.control_mode == "impedance":
-            self.switch_mode("impedance")
-        elif self.control_mode == "position":
-            self.switch_mode("position")
-        else:
-            raise ValueError(f"Invalid control mode: {self.control_mode}")
-
-        if self.mute_skd_log:
-            IOUtil.mute()
-        # Set velocity and acceleration
-        self.robot.set_vel_acc("A", self.vel_ratio, self.acc_ratio)
-        self.robot.set_vel_acc("B", self.vel_ratio, self.acc_ratio)
-        self.robot.send_cmd()
-
-        time.sleep(0.25)
-        if self.mute_skd_log:
-            IOUtil.restore()
-
-        # Set active event
-        self._active_event.set()
-
     def is_active(self) -> bool:
         return self._active_event.is_set()
+    
+    def is_alive(self) -> bool:
+        return self._connect_event.is_set()
 
     def get_state(self, timeout: float = 1.0) -> RobotState:
         """
@@ -187,8 +146,56 @@ class MarvinRobot(Robot):
             IOUtil.restore()
         return action
 
+    def start(self):
+        if not self.is_alive():
+            # Can't be double started
+            logger.warning("Marvin robot is not connected, can't be started")
+            return
+        self._launch_robot()
+
+    def _launch_robot(self):
+        if self.mute_skd_log:
+            IOUtil.mute()
+        # Clear error
+        self.robot.clear_error("A")
+        self.robot.clear_error("B")
+        time.sleep(0.25)
+
+        # Set dynamic params
+        self.robot.clear_set()
+        self.robot.set_tool(arm="A", kineParams=[0, 0, 0, 0, 0, 0], dynamicParams=self.dynamic_params[0])
+        self.robot.set_tool(arm="B", kineParams=[0, 0, 0, 0, 0, 0], dynamicParams=self.dynamic_params[1])
+        self.robot.send_cmd()
+        time.sleep(0.25)
+
+        if self.mute_skd_log:
+            IOUtil.restore()
+
+        # Set control mode
+        self.robot.clear_set()
+        if self.control_mode == "impedance":
+            self.switch_mode("impedance")
+        elif self.control_mode == "position":
+            self.switch_mode("position")
+        else:
+            raise ValueError(f"Invalid control mode: {self.control_mode}")
+
+        if self.mute_skd_log:
+            IOUtil.mute()
+        # Set velocity and acceleration
+        self.robot.set_vel_acc("A", self.vel_ratio, self.acc_ratio)
+        self.robot.set_vel_acc("B", self.vel_ratio, self.acc_ratio)
+        self.robot.send_cmd()
+
+        time.sleep(0.25)
+        if self.mute_skd_log:
+            IOUtil.restore()
+
+        # Set active event
+        self._active_event.set()
+        
     def stop(self):
-        if not self._connect_event.is_set():
+        if not self.is_alive():
             # Can't be double stopped
             logger.warning("Marvin robot is not connected, can't be stopped")
             return
