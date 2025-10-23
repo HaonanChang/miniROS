@@ -104,6 +104,12 @@ class TimedData:
     data: Any = None     # Data
 
 
+@dataclass
+class FrameTime:
+    timestamp_ns: int
+    timestamp_recv_ns: int
+
+
 ##########################################
 ### Different state for state machine ####
 ##########################################

@@ -139,7 +139,7 @@ class RSCamera(Camera):
         Encode frame object to goal format
         """
         color_frame = frames.get_color_frame()
-        timestamp_in_chip = color_frame.get_timestamp()
+        timestamp_in_chip = color_frame.get_timestamp() / 1000.0  # ms to s
         timestamp_in_system = TimeUtil.now().timestamp()
         
         img = np.asanyarray(color_frame.get_data())
@@ -197,10 +197,11 @@ class RSCamera(Camera):
             logger.warning("Camera is not connected, can't be started")
             return
         # Open file handler for data
-        tmp_dir = f"{self.data_upload_dir}/{LangUtil.make_uid()}"
+        tmp_dir = f"{self.data_upload_dir}/.tmp"
+        self.tmp_file = f"{tmp_dir}/{LangUtil.make_uid()}.jsonl"
         os.makedirs(tmp_dir, exist_ok=True)
         with self._handle_mutex:
-            self._fh = open(f"{tmp_dir}/{self.name}.jsonl", "w")
+            self._fh = open(self.tmp_file, "w")
         self._active_event.set()
 
     def pause(self):

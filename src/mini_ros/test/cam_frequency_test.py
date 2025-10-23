@@ -43,3 +43,6 @@ class MultiThreadCameraFrequencyTest(CameraFrequencyTest):
     def start(self):
         self.write_thread.start()
         self.read_thread.start()
+
+
+################################## Frame rate analyzing ##################################
