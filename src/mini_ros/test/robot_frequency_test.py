@@ -14,7 +14,7 @@ from mini_ros.utils.async_util import AsyncUtil
 from mini_ros.common.device import Robot
 from mini_ros.wrapper.multi_robot import MultiRobot
 from mini_ros.common.state import RobotAction, RobotState
-from mini_ros.utils.rate_limiter import RateLimiter, RateLimiterSync
+from mini_ros.utils.rate_limiter import RateLimiterAsync, RateLimiterSync
 
 
 def create_timed_joint_cmds_traj(start_joint_point, end_joint_point, num_points, num_repeat):
@@ -136,141 +136,7 @@ def draw_compare_fig(control_log: list[RobotAction], read_log: list[RobotState],
         raise ValueError(f"Invalid compare type: {compare_type}")
 
 
-################################### Single robot test ###################################
-class FreqTest:
-    """
-    Base class for frequency test.
-    """
-    def __init__(self, robot, joint_cmds_traj: Union[list[list[float]], list[list[list[float]]]], control_freq: int = 100, read_freq: int = 100):
-        self.robot = robot
-        self.control_freq = control_freq
-        self.read_freq = read_freq
-        self.joint_cmds_traj = joint_cmds_traj
-        self._control_log: list[RobotAction] = []
-        self._read_log: list[RobotState] = []
-
-    def start(self):
-        pass
-
-    def join(self):
-        pass   
-
-    def control_loop(self):
-        pass
-
-    def read_loop(self):
-        pass
-
-    def generate_compare_fig(self, compare_type: str = "joint_cmds", title="", y_margin=0.0) -> None:
-        """
-        Generate the comparison figure of the control and read log.
-        """
-        draw_compare_fig(control_log=self._control_log, read_log=self._read_log, compare_type=compare_type, title=title, y_margin=y_margin)
-
-
-class MultiThreadFreqTest(FreqTest):
-    """
-    Test the robot read & write method into multi-thread.
-    """
-    def __init__(self, robot, joint_cmds_traj: Union[list[list[float]], list[list[list[float]]]], control_freq: int = 100, read_freq: int = 100):
-        self.robot = robot
-        self.control_freq = control_freq
-        self.read_freq = read_freq
-        self.control_thread = None
-        self.read_thread = None
-        self.joint_cmds_traj = joint_cmds_traj
-
-        # Log
-        self._control_log: list[RobotAction] = []
-        self._read_log: list[RobotState] = []
-    
-    def start(self):
-        self.control_thread = threading.Thread(target=self.control_loop)
-        self.read_thread = threading.Thread(target=self.read_loop)
-        self.control_thread.start()
-        self.read_thread.start()
-
-    def join(self):
-        self.control_thread.join()
-        self.read_thread.join()
-
-    def control_loop(self) -> None:
-        control_rate_limiter = RateLimiterSync(self.control_freq)
-        for joint_cmds in self.joint_cmds_traj:
-            control_rate_limiter.wait_for_tick()
-            
-            robot_action = RobotAction(joint_cmds=joint_cmds)
-            robot_action = self.robot.apply_action(robot_action)
-            self._control_log.append(robot_action)
-
-        logger.info("Quitting control loop.")
-        # Set stop
-        self.robot.pause()
-
-    def read_loop(self) -> None:
-        read_rate_limiter = RateLimiterSync(self.read_freq)
-        while self.robot.is_active():
-            try:
-                read_rate_limiter.wait_for_tick()
-                # logger.info("reading data")
-                state = self.robot.get_state()
-
-            except Exception as e:
-                break
-            self._read_log.append(state)
-        logger.info("Quitting read loop.")
-    
-
-class AsyncFreqTest(FreqTest):
-    """
-    Test the robot read & write method using async/await.
-    """
-    def __init__(self, robot, joint_cmds_traj: Union[list[list[float]], list[list[list[float]]]], control_freq: int = 100, read_freq: int = 100):
-        self.robot = robot
-        self.control_freq = control_freq
-        self.read_freq = read_freq
-        self.joint_cmds_traj = joint_cmds_traj
-        
-        # Log
-        self._control_log: list[RobotAction] = []
-        self._read_log: list[RobotState] = []
-    
-    def start(self):
-        async def run_async_tasks():
-            control_task = asyncio.create_task(self.control_loop())
-            read_task = asyncio.create_task(self.read_loop())
-            await asyncio.gather(control_task, read_task)
-        
-        AsyncUtil.run_async_as_blocking(run_async_tasks())
-
-    async def control_loop(self):
-        control_rate_limiter = RateLimiter(self.control_freq)
-        for joint_cmds in self.joint_cmds_traj:
-            await control_rate_limiter.wait_for_tick()
-
-            robot_action = RobotAction(joint_cmds=joint_cmds)
-            robot_action = await AsyncUtil.run_blocking_as_async(self.robot.apply_action, robot_action)
-            self._control_log.append(robot_action)
-
-        logger.info("Quitting control loop.")
-        # Set stop
-        await AsyncUtil.run_blocking_as_async(self.robot.pause)
-
-    async def read_loop(self):
-        read_rate_limiter = RateLimiter(self.read_freq)
-        while self.robot.is_active():
-            try:
-                await read_rate_limiter.wait_for_tick()
-
-                state = await AsyncUtil.run_blocking_as_async(self.robot.get_state)
-
-            except Exception as e:
-                break
-            self._read_log.append(state)
-        logger.info("Quitting read loop.")
-
-
-################################### Multi robot test ###################################
+################################### Mutli robot test ###################################
 class FreqTestMultiRobot:
     """
     Test the robot read & write method into multi-thread.
@@ -364,39 +230,48 @@ class AsyncFreqTestMultiRobot(FreqTestMultiRobot):
         self.control_freqs = control_freqs
         self.read_freqs = read_freqs
 
+        self.stop_mutex = asyncio.Lock()
+
         # Log
         self._control_log: Dict[str, list[RobotAction]] = {robot_name: [] for robot_name in self.multi_robot.robots.keys()}
         self._read_log: Dict[str, list[RobotState]] = {robot_name: [] for robot_name in self.multi_robot.robots.keys()}
 
     def start(self):
-        self.control_threads = []
-        self.read_threads = []
-        print(self.multi_robot.robots.keys())
-
-        async def run_async_tasks():
-            control_tasks = [asyncio.create_task(self.control_loop(robot_name)) for robot_name in self.multi_robot.robots.keys()]
-            read_tasks = [asyncio.create_task(self.read_loop(robot_name)) for robot_name in self.multi_robot.robots.keys()]
-            await asyncio.gather(*control_tasks, *read_tasks)
-
-        AsyncUtil.run_async_as_blocking(run_async_tasks())
-
-    def join(self):
-        pass
+        self.control_tasks = [asyncio.create_task(self.control_loop(robot_name)) for robot_name in self.multi_robot.robots.keys()]
+        self.read_tasks = [asyncio.create_task(self.read_loop(robot_name)) for robot_name in self.multi_robot.robots.keys()]
+        # AsyncUtil.run_async_as_blocking(asyncio.gather(*self.control_tasks, *self.read_tasks))
+        
+    async def join(self):
+        try:
+            await asyncio.gather(*self.control_tasks, *self.read_tasks)
+        except asyncio.CancelledError as e:
+            logger.info(f"Join cancelled: {e}")
+        except Exception as e:
+            logger.error(f"Error in join: {e}")
+        finally:
+            self.multi_robot.pause()
 
     async def control_loop(self, robot_name: str) -> None:
-        control_rate_limiter = RateLimiter(self.control_freqs[robot_name])
+        control_rate_limiter = RateLimiterAsync(self.control_freqs[robot_name])
         for joint_cmds in self.joint_cmds_traj[robot_name]:
-            await control_rate_limiter.wait_for_tick()
+            try:
+                await control_rate_limiter.wait_for_tick()
 
-            robot_action = RobotAction(joint_cmds=joint_cmds)
-            robot_action = await AsyncUtil.run_blocking_as_async(self.multi_robot.apply_action_to, robot_name, robot_action)
-            self._control_log[robot_name].append(robot_action)
+                robot_action = RobotAction(joint_cmds=joint_cmds)
+                robot_action = await AsyncUtil.run_blocking_as_async(self.multi_robot.apply_action_to, robot_name, robot_action)
+                self._control_log[robot_name].append(robot_action)
+            except asyncio.CancelledError:
+                logger.info(f"Control loop for robot {robot_name} cancelled.")
+                break
+            except Exception as e:
+                logger.error(f"Error in control loop for robot {robot_name}: {e}")
+                break
         # Set stop
-        await AsyncUtil.run_blocking_as_async(self.multi_robot.pause)
         logger.info(f"Quitting control loop for robot {robot_name}.")
+        await self.stop()
 
     async def read_loop(self, robot_name: str) -> None:
-        read_rate_limiter = RateLimiter(self.read_freqs[robot_name])
+        read_rate_limiter = RateLimiterAsync(self.read_freqs[robot_name])
         logger.info(f"Starting read loop for robot {robot_name}. Active: {self.multi_robot.is_active()}")
         while self.multi_robot.is_active():
             try:
@@ -406,4 +281,16 @@ class AsyncFreqTestMultiRobot(FreqTestMultiRobot):
             except Exception as e:
                 logger.error(f"Error in read loop for robot {robot_name}: {e}")
                 break
+            except asyncio.CancelledError:
+                logger.info(f"Read loop for robot {robot_name} cancelled.")
+                break
         logger.info(f"Quitting read loop for robot {robot_name}.")
+    
+    async def stop(self):
+        # Only one instance can stop the test at a time.
+        async with self.stop_mutex:
+            logger.info("Stopping multi-robot test.")
+            # Cancel all tasks
+            for control_task, read_task in zip(self.control_tasks, self.read_tasks):
+                control_task.cancel()
+                read_task.cancel()

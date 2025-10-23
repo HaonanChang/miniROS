@@ -19,7 +19,7 @@ from mini_ros.utils.web_util import WebUtil
 from mini_ros.utils.async_util import AsyncUtil
 from mini_ros.utils.lang_util import LangUtil
 from mini_ros.utils.time_util import TimeUtil
-from mini_ros.utils.rate_limiter import RateLimiter
+from mini_ros.utils.rate_limiter import RateLimiterAsync
 from mini_ros.utils.config import LazyConfig
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
@@ -157,7 +157,7 @@ class CommanderWebWrapper:
         async def ws_health(websocket: WebSocket):
             await websocket.accept()
 
-            rate_limiter = RateLimiter(60)
+            rate_limiter = RateLimiterAsync(60)
 
             prev = None
 
@@ -187,7 +187,7 @@ class CommanderWebWrapper:
 
             await websocket.accept()
 
-            rate_limiter = RateLimiter(50)
+            rate_limiter = RateLimiterAsync(50)
 
             logger.info(
                 self.class_name(),
@@ -228,7 +228,7 @@ class CommanderWebWrapper:
 
             await websocket.accept()
 
-            rate_limiter = RateLimiter(50)
+            rate_limiter = RateLimiterAsync(50)
 
             logger.info(
                 self.class_name(),

@@ -7,7 +7,7 @@ import asyncio
 from loguru import logger
 from typing import Any, Callable, Coroutine, Dict, Set
 from mini_ros.common.error import ReadError
-from mini_ros.utils.rate_limiter import RateLimiter
+from mini_ros.utils.rate_limiter import RateLimiterAsync
 from mini_ros.utils.async_util import AsyncUtil
 from mini_ros.utils.time_util import TimeUtil
 from mini_ros.common.state import RobotDeviceState, RobotState, RobotAction, TimedData
@@ -34,8 +34,8 @@ class AsyncRobot(Device):
         assert len(robots) == len(robot_configs), "Number of drivers and driver configs must be the same"
         self.robots: Dict[str, Robot] = robots
         self.robot_configs: Dict[str, Any] = robot_configs
-        self.read_limiters: Dict[str, RateLimiter] = {driver_name: RateLimiter(polling_rate[driver_name]) for driver_name in robots.keys()}
-        self.write_limiters: Dict[str, RateLimiter] = {driver_name: RateLimiter(writing_rate[driver_name]) for driver_name in robots.keys()}
+        self.read_limiters: Dict[str, RateLimiterAsync] = {driver_name: RateLimiterAsync(polling_rate[driver_name]) for driver_name in robots.keys()}
+        self.write_limiters: Dict[str, RateLimiterAsync] = {driver_name: RateLimiterAsync(writing_rate[driver_name]) for driver_name in robots.keys()}
         self._timeout: float = timeout
         # Internal state
         self.state: RobotDeviceState = RobotDeviceState.INIT

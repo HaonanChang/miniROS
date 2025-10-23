@@ -129,6 +129,7 @@ class PikaGripper(Robot):
             # Can't be double paused
             logger.warning("Pika gripper is not active, can't be paused")
             return
+        logger.info(f"Pausing Pika gripper: {self.name}: Active: {self.is_active()}, Alive: {self.is_alive()}")
         self._active_event.clear()
 
     def is_active(self) -> bool:

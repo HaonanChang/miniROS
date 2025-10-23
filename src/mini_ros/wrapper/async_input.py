@@ -9,7 +9,7 @@ import aiomultiprocess
 
 # from mini_ros.inputs.input_device import InputDevice, InputDeviceState
 from loguru import logger
-from mini_ros.utils.rate_limiter import RateLimiter
+from mini_ros.utils.rate_limiter import RateLimiterAsync
 from mini_ros.utils.async_util import AsyncUtil
 from mini_ros.utils.time_util import TimeUtil
 from mini_ros.common.state import InputDeviceState, TimedData
@@ -36,7 +36,7 @@ class AsyncInput(Device):
         assert len(readers) == len(reader_configs), "Number of readers and reader configs must be the same"
         self.readers: Dict[str, Reader] = readers
         self.reader_configs: Dict[str, Any] = reader_configs
-        self.read_limiters: Dict[str, RateLimiter] = {driver_name: RateLimiter(polling_rate[driver_name]) for driver_name in readers.keys()}
+        self.read_limiters: Dict[str, RateLimiterAsync] = {driver_name: RateLimiterAsync(polling_rate[driver_name]) for driver_name in readers.keys()}
 
         # Internal state
         self.state: InputDeviceState = InputDeviceState.INIT

@@ -15,7 +15,7 @@ from mini_ros.devices.robots.pika_gripper import PikaGripper
 from mini_ros.common.state import CommanderState, RobotNodeState
 from mini_ros.common.device import Robot, Reader
 from mini_ros.network.network_queue import QueueDealerSender, QueueSubRecver
-from mini_ros.utils.rate_limiter import RateLimiter
+from mini_ros.utils.rate_limiter import RateLimiterAsync
 from mini_ros.utils.async_util import AsyncUtil
 
 
@@ -48,9 +48,9 @@ class RobotNode:
         self.commander_state = CommanderState.INIT
         self.inter_state = RobotNodeState.INIT
         # Rate limiters
-        self._commander_listen_rate_limiter = RateLimiter(rate=node_cfg.get("commander_listen_rate", 50))
-        self._listen_rate_limiters = {name: RateLimiter(rate=node_cfg.get(f"{name}_listen_rate", 200)) for name in devices.keys() if isinstance(devices[name], Reader) or isinstance(devices[name], Robot)}
-        self._control_rate_limiters = {name: RateLimiter(rate=node_cfg.get(f"{name}_control_rate", 60)) for name in devices.keys() if isinstance(devices[name], Robot)}
+        self._commander_listen_rate_limiter = RateLimiterAsync(rate=node_cfg.get("commander_listen_rate", 50))
+        self._listen_rate_limiters = {name: RateLimiterAsync(rate=node_cfg.get(f"{name}_listen_rate", 200)) for name in devices.keys() if isinstance(devices[name], Reader) or isinstance(devices[name], Robot)}
+        self._control_rate_limiters = {name: RateLimiterAsync(rate=node_cfg.get(f"{name}_control_rate", 60)) for name in devices.keys() if isinstance(devices[name], Robot)}
     
     async def initialize(self):
         # Initialize all devices

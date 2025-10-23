@@ -77,7 +77,7 @@ class RSCamera(Camera):
         self._active_event = threading.Event()
         self._connect_event = threading.Event()
         # Handle mutex
-        self._handle_mutex = threading.Lock()
+        self._io_mutex = threading.Lock()
 
     def is_active(self) -> bool:
         return self._active_event.is_set()
@@ -196,28 +196,29 @@ class RSCamera(Camera):
             # Can't be double started
             logger.warning("Camera is not connected, can't be started")
             return
+
+        # Drop old frame
+        while not self._data_buffer.empty():
+            self._data_buffer.get()
+
         # Open file handler for data
         tmp_dir = f"{self.data_upload_dir}/.tmp"
         self.tmp_file = f"{tmp_dir}/{LangUtil.make_uid()}.jsonl"
         os.makedirs(tmp_dir, exist_ok=True)
-        with self._handle_mutex:
+        with self._io_mutex:
             self._fh = open(self.tmp_file, "w")
-        logger.info(f"Started camera: {self.name}")
-        # Drop old frame
-        while not self._data_buffer.empty():
-            self._data_buffer.get()
         self._active_event.set()
+        logger.info(f"Started camera: {self.name}")
+        
 
     def pause(self):
-        logger.info(f"[1]: Pausing camera: {self.name}: Active: {self.is_active()}, Alive: {self.is_alive()}")
         if not self.is_active():
             # Can't be double paused
-            logger.warning("Camera is not connected, can't be paused")
             return
         self._active_event.clear()
-        # Clear the buffer
-        logger.info(f"[2]: Paused camera: {self.name}: Active: {self.is_active()}, Alive: {self.is_alive()}")
-        with self._handle_mutex:
+        logger.info(f"Pausing camera: {self.name}: Active: {self.is_active()}, Alive: {self.is_alive()}")
+        with self._io_mutex:
+            # Clear the buffer
             self._fh.close()
             self._fh = None
         
@@ -228,6 +229,11 @@ class RSCamera(Camera):
             return
         self._active_event.clear()
         self._connect_event.clear()
+        with self._io_mutex:
+            if self._fh is not None:
+                logger.info(f"File is not yet closed. Closing file handler: {self.tmp_file}...")
+                self._fh.close()
+                self._fh = None
 
         self._rs_pipeline.stop()
         self._read_thread.join()
@@ -248,9 +254,6 @@ class RSCamera(Camera):
         """
         Save the data to the given path
         """
-        if not self.is_active():
-            # Quietly return if not active or file handler is not opened
-            return
         data_frame = self._data_buffer.get()
         payload = json.dumps(
             {
@@ -260,9 +263,11 @@ class RSCamera(Camera):
                 "depth": base64.b64encode(data_frame.depth_image).decode("utf-8") if data_frame.depth_image is not None else None,
             }
         )
-        with self._handle_mutex:
+        with self._io_mutex:
+            if not self.is_active():
+                return
             if self._fh is None:
-                logger.warning("File handler is not opened, can't save data")
+                logger.error("File handler is not opened, can't save data")
                 return
             self._fh.write(payload + "\n")
     

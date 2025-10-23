@@ -32,6 +32,7 @@ class MarvinRobotConfig:
     port: str = "192.168.1.190"
     baudrate: int = 115200
     timeout: float = 1.0
+    init_timeout: float = 10.0
     acc_ratio: int = 10
     vel_ratio: int = 10
     control_mode: str = "impedance"
@@ -69,6 +70,7 @@ class MarvinRobot(Robot):
         self.dynamic_params = config.dynamic_params
         self.mute_skd_log = config.mute_skd_log
         self.is_new_version = config.is_new_version
+        self.init_timeout = config.init_timeout
         self.mode = "init"
         # Active: Can be controlled
         self._active_event = threading.Event()
@@ -78,12 +80,16 @@ class MarvinRobot(Robot):
     def initialize(self, driver_config = None):
         self.robot = Marvin_Robot()
         self.robot.connect(self.port)
-        time.sleep(1.0)
-        # Check connection
-        state = self.get_state()
+        start_time = TimeUtil.now()
+        while (TimeUtil.now() - start_time).total_seconds() < self.init_timeout:
+            state = self.get_state()
+            if state is not None and self.is_state_valid(state):
+                break
+            time.sleep(0.1)
         if state is None or not self.is_state_valid(state):
-            logger.error("Failed to initialize Marvin robot")
-            return
+            logger.error(f"Failed to initialize Marvin robot in {self.init_timeout} seconds")
+            return False
+        logger.info(f"Initialized Marvin robot in {TimeUtil.get_elapsed_time_ms(start_time)} ms")
         self._connect_event.set()
         return True
 
@@ -209,6 +215,7 @@ class MarvinRobot(Robot):
             # Can't be double paused
             logger.warning("Marvin robot is not active, can't be paused")
             return
+        logger.info(f"Pausing Marvin robot: {self.name}: Active: {self.is_active()}, Alive: {self.is_alive()}")
         self._pause_robot()
         self._active_event.clear()
 

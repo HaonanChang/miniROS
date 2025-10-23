@@ -6,7 +6,7 @@ from typing import Dict, Any, Awaitable, Callable, Type
 from dataclasses import dataclass, field
 from mini_ros.common.state import CommanderState
 from mini_ros.utils.time_util import TimeUtil
-from mini_ros.utils.rate_limiter import RateLimiter
+from mini_ros.utils.rate_limiter import RateLimiterAsync
 from mini_ros.network.network_queue import QueuePubSender, QueueRouterRecver
 from loguru import logger
 
@@ -30,7 +30,7 @@ class CommanderNode:
         self._is_reset_busy: bool = False
         self._paddle_mutex: asyncio.Lock = asyncio.Lock()
         # Rate limiters
-        self._process_rate_limiter = RateLimiter(50)  # Refresh SM in 50 Hz
+        self._process_rate_limiter = RateLimiterAsync(50)  # Refresh SM in 50 Hz
         # Network interface
         # Publish commander state to all devices
         self.commander_state_sender = QueuePubSender(name="commander_state", port=commander_cfg.get("commander_state_pub_port", 5008))

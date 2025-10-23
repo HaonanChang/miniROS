@@ -5,7 +5,7 @@ import os
 import time
 import numpy as np
 from mini_ros.common.state import RobotAction
-from mini_ros.test.robot_frequency_test import MultiThreadFreqTestMultiRobot, AsyncFreqTestMultiRobot, AsyncFreqTest, create_timed_joint_cmds_traj
+from mini_ros.test.robot_frequency_test import MultiThreadFreqTestMultiRobot, AsyncFreqTestMultiRobot, create_timed_joint_cmds_traj
 from mini_ros.devices.robots.pika_gripper import PikaGripper, PikaGripperConfig
 from mini_ros.devices.robots.marvin_robot import MarvinRobot, MarvinRobotConfig
 from mini_ros.wrapper.multi_robot import MultiRobotCamera
@@ -18,6 +18,7 @@ import datetime
 import pathlib
 from mini_ros.utils.video_util import VideoUtil
 import sys
+import asyncio
 
 
 # logger.remove()  # Remove default handler
@@ -64,7 +65,7 @@ def single_multi_thread_test(multi_robot: MultiRobotCamera, control_freqs: Dict[
     generate_video(export_folder)
     
 
-def single_async_test(multi_robot: MultiRobotCamera, control_freqs: Dict[str, int], read_freqs: Dict[str, int], joint_cmds_traj: Dict[str, list[list[float]]], exp_idx=0, export_folder=""):
+async def single_async_test(multi_robot: MultiRobotCamera, control_freqs: Dict[str, int], read_freqs: Dict[str, int], joint_cmds_traj: Dict[str, list[list[float]]], exp_idx=0, export_folder=""):
     if not multi_robot.is_active():
         multi_robot.start()
 
@@ -77,7 +78,9 @@ def single_async_test(multi_robot: MultiRobotCamera, control_freqs: Dict[str, in
     # Generate joint traj
     test = AsyncFreqTestMultiRobot(multi_robot=multi_robot, joint_cmds_traj=joint_cmds_traj, control_freqs=control_freqs, read_freqs=read_freqs)
     test.start()
-    test.join()
+
+    # Wait for join
+    await test.join()
     
     test.generate_compare_fig(title=f"{export_folder}/{control_freq_str}-{read_freq_str}-e_{exp_idx}", y_margin=10)
     # Save video from cameras
@@ -149,7 +152,7 @@ if __name__ == "__main__":
     for i in range(5):
         export_folder = os.path.join(data_upload_dir, TimeUtil.now().strftime("%Y%m%d_%H%M%S"))
         os.makedirs(export_folder, exist_ok=True)
-        # single_async_test(multi_robot_camera, control_freqs, read_freqs, joint_cmds_traj, exp_idx=0, export_folder=export_folder)
+        # asyncio.run(single_async_test(multi_robot_camera, control_freqs, read_freqs, joint_cmds_traj, exp_idx=0, export_folder=export_folder))
         single_multi_thread_test(multi_robot_camera, control_freqs, read_freqs, joint_cmds_traj, exp_idx=0, export_folder=export_folder)
     
     multi_robot_camera.stop()
