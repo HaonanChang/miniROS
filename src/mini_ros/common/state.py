@@ -53,6 +53,8 @@ class RobotState:
     base_pose: list[float] = field(default_factory=list)
     # (6,): (x, y, z, roll, pitch, yaw)
     base_velocity: list[float] = field(default_factory=list)
+    # (1,): Data Status
+    data_status: str = ""
 
 
 @dataclass
@@ -60,8 +62,10 @@ class RobotAction:
     """
     Robot action
     """
-    # 1: Timestamp
+    # 1: Timestamp applied at robot
     timestamp: float = 0.0
+    # 1: Timestamp recv by system
+    timestamp_recv: float = 0.0
     # (N,): (N is the number of joints)
     # Joint-space Position Control
     joint_cmds: list[float] = field(default_factory=list)
@@ -74,6 +78,8 @@ class RobotAction:
     # (6,): (x, y, z, roll, pitch, yaw)
     # Base Velocity Control
     base_velocity_cmds: list[float] = field(default_factory=list)
+    # (1,): Data Status
+    data_status: str = ""
     
 
 @dataclass
@@ -84,7 +90,7 @@ class CameraData:
     # 1: Timestamp at camera chip
     timestamp: float = 0
     # 1: Timestamp recv by system
-    timestamp_in_system: float = 0
+    timestamp_recv: float = 0
     # (H, W, 3): (H is the height, W is the width)
     color_image: np.ndarray | bytes = None
     # (H, W): (H is the height, W is the width)

@@ -13,6 +13,7 @@ import cv2
 import threading
 import time
 import json
+import struct
 import base64
 from mini_ros.common.state import CameraData
 from mini_ros.utils.lang_util import LangUtil
@@ -58,6 +59,7 @@ class RSCamera(Camera):
         self.height = driver_config.height
         self.fps = driver_config.fps
         self.save_format = driver_config.save_format
+        assert self.save_format in ["jpg", "jpeg"], "Only jpg and jpeg are supported"
         self.flip = driver_config.flip
         self.auto_exposure = driver_config.auto_exposure
         self.auto_exposure_limit = driver_config.auto_exposure_limit
@@ -134,63 +136,6 @@ class RSCamera(Camera):
         frames = self._rs_pipeline.wait_for_frames()
         return frames
 
-    def process_frame(self, frames: rs2.frame) -> np.ndarray:
-        """
-        Encode frame object to goal format
-        """
-        color_frame = frames.get_color_frame()
-        timestamp_in_chip = color_frame.get_timestamp() / 1000.0  # ms to s
-        timestamp_in_system = TimeUtil.now().timestamp()
-        
-        img = np.asanyarray(color_frame.get_data())
-        if self.flip:
-            img = cv2.rotate(img, cv2.ROTATE_180)
-        if self.resize_width and self.resize_height:
-            img = cv2.resize(img, (self.resize_width, self.resize_height))
-        color_image = self._encode_to_bytes(img, self.save_format, self.jpeg_quality)
-
-        # Encode depth image
-        if self.save_depth:
-            depth_frame = frames.get_depth_frame()
-            if self.resize_width and self.resize_height:
-                depth_frame = cv2.resize(depth_frame, (self.resize_width, self.resize_height), interpolation=cv2.INTER_NEAREST_EXACT)
-            depth_image = self.depth_to_bytes_zlib(depth_frame.get_data())
-        else:
-            depth_image = None
-
-        camera_data = CameraData(timestamp=timestamp_in_chip, timestamp_in_system=timestamp_in_system, color_image=color_image, depth_image=depth_image, width=self.resize_width if self.resize_width else self.width, height=self.resize_height if self.resize_height else self.height)
-        # Save to buffer
-        if self._data_buffer.full():
-            self._data_buffer.get_nowait()
-        self._data_buffer.put_nowait(camera_data)
-
-        return camera_data
-
-    def _encode_to_bytes(self, frame: np.ndarray, save_fmt: str = "jpg", jpeg_quality: int = 95) -> bytes:
-        """
-        Encode a OpenCV frame to a bytes object
-        """
-
-        import cv2
-
-        # If out of bounds, set to default
-        if jpeg_quality < 30 or jpeg_quality > 100:
-            jpeg_quality = 95
-
-        return cv2.imencode(f".{save_fmt}", frame, [int(cv2.IMWRITE_JPEG_QUALITY), jpeg_quality])[1].tobytes()
-        
-    def depth_to_bytes_zlib(frame, compression_level=6):
-        """
-        Custom compression using zlib
-        """
-        # Flatten the array and compress
-        compressed = zlib.compress(frame.tobytes(), compression_level)
-        
-        # Add dimensions header for reconstruction
-        import struct
-        header = struct.pack('II', frame.shape[1], frame.shape[0])
-        return header + compressed
-
     def start(self):
         if not self.is_alive():
             # Can't be double started
@@ -210,7 +155,6 @@ class RSCamera(Camera):
         self._active_event.set()
         logger.info(f"Started camera: {self.name}")
         
-
     def pause(self):
         if not self.is_active():
             # Can't be double paused
@@ -249,16 +193,74 @@ class RSCamera(Camera):
             except Exception as e:
                 logger.error(f"Error in read loop: {e}")
                 break
+    
+    def process_frame(self, frames: rs2.frame) -> np.ndarray:
+        """
+        Encode frame object to goal format
+        """
+        color_frame = frames.get_color_frame()
+        timestamp_in_chip = color_frame.get_timestamp() / 1000.0  # ms to s
+        timestamp_in_system = TimeUtil.now().timestamp()
+        
+        img = np.asanyarray(color_frame.get_data())
+        if self.flip:
+            img = cv2.rotate(img, cv2.ROTATE_180)
+        if self.resize_width and self.resize_height:
+            img = cv2.resize(img, (self.resize_width, self.resize_height))
+        color_image = self._jpeg_compress(img, self.save_format, self.jpeg_quality)
 
+        # Encode depth image
+        if self.save_depth:
+            depth_frame = frames.get_depth_frame()
+            if self.resize_width and self.resize_height:
+                depth_frame = cv2.resize(depth_frame, (self.resize_width, self.resize_height), interpolation=cv2.INTER_NEAREST_EXACT)
+            depth_image = self._zlib_compress(depth_frame.get_data())
+        else:
+            depth_image = None
+
+        camera_data = CameraData(timestamp=timestamp_in_chip, timestamp_recv=timestamp_in_system, color_image=color_image, depth_image=depth_image, width=self.resize_width if self.resize_width else self.width, height=self.resize_height if self.resize_height else self.height)
+        # Save to buffer
+        if self._data_buffer.full():
+            self._data_buffer.get_nowait()
+        self._data_buffer.put_nowait(camera_data)
+
+        return camera_data
+
+    def _jpeg_compress(self, frame: np.ndarray, save_fmt: str = "jpg", jpeg_quality: int = 95) -> bytes:
+        """
+        Encode a OpenCV frame to a bytes object.
+        Input: np.ndarray (H, W, 3)
+        Output: bytes
+        """
+        # If out of bounds, set to default
+        if jpeg_quality < 30 or jpeg_quality > 100:
+            jpeg_quality = 95
+
+        return cv2.imencode(f".{save_fmt}", frame, [int(cv2.IMWRITE_JPEG_QUALITY), jpeg_quality])[1].tobytes()
+        
+    def _zlib_compress(frame, compression_level=6):
+        """
+        Custom compression using zlib.
+        Input: np.ndarray (H, W)
+        Output: bytes
+        """
+        # Flatten the array and compress
+        compressed = zlib.compress(frame.tobytes(), compression_level)
+        # Add dimensions header for reconstruction
+        header = struct.pack('II', frame.shape[1], frame.shape[0])
+        return header + compressed
+
+    ######################### Save related methods #########################
     def save_data(self, save_type: str = "color"):
         """
         Save the data to the given path
         """
         data_frame = self._data_buffer.get()
+        # Serialize data to JSON
         payload = json.dumps(
             {
                 "timestamp": data_frame.timestamp,
-                "timestamp_recv": data_frame.timestamp_in_system,
+                "timestamp_recv": data_frame.timestamp_recv,
                 "image": base64.b64encode(data_frame.color_image).decode("utf-8"),
                 "depth": base64.b64encode(data_frame.depth_image).decode("utf-8") if data_frame.depth_image is not None else None,
             }

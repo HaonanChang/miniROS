@@ -17,3 +17,22 @@ Modularized design. The key idea is for easily plug in & out.
 - Rewrite the commander logic.
 - Joint test.
 - Add gripper calibration.
+
+## Save type
+
+### RDC-style
+
+**Action**:
+- 'action', 
+- 'action_timestamp'
+- 'action_gello_timestamp'
+- 'commander_state'
+
+**Obs**
+- 'joint_positions'
+- 'joint_velocities'
+- 'currents'
+- 'torques'
+- 'ee_pos'
+- 'robot_timestamp'
+- 'commander_state'
