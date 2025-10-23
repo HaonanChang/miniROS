@@ -353,7 +353,7 @@ class VideoUtil:
 def main():
 
     base_path = str(
-        pathlib.Path("/home/we/Projects/miniROS/tmp_data/126cc7a4-1996-4b96-b70c-3b6a7165c484").resolve()
+        pathlib.Path("/home/we/Projects/miniROS/tmp_data/20251022_210030").resolve()
     )
 
     # Run VA-API variant first

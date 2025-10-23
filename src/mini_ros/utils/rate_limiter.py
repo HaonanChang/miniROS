@@ -71,26 +71,26 @@ class RateLimiter:
             self.tick_start_time = TimeUtil.now()
             self.start_time = TimeUtil.now()
 
-        async with self.busy_mutex:
-            self.is_busy = True
-            if LOG_TRACE_INFO:
-                logger.info(f"Id: {id(self)}| RateLimiter Setting busy", trace_info)
+        # async with self.busy_mutex:
+        #     self.is_busy = True
+        #     if LOG_TRACE_INFO:
+        #         logger.info(f"Id: {id(self)}| RateLimiter Setting busy", trace_info)
 
-    async def unset_busy(self, trace_info: str = "") -> None:
-        """
-        Mark the caller is no longer busy.
-        """
-        async with self.busy_mutex:
-            # Edge case: If the current call is TOO slow. Make sure future calls do not get too far behind
-            if (TimeUtil.now() - self.tick_start_time).total_seconds() * 1000 >= (
-                self.interval_ms() * 1.3
-            ):
-                self.start_time = TimeUtil.now()
-                self.ticks = 0
+    # async def unset_busy(self, trace_info: str = "") -> None:
+    #     """
+    #     Mark the caller is no longer busy.
+    #     """
+    #     async with self.busy_mutex:
+    #         # Edge case: If the current call is TOO slow. Make sure future calls do not get too far behind
+    #         if (TimeUtil.now() - self.tick_start_time).total_seconds() * 1000 >= (
+    #             self.interval_ms() * 1.3
+    #         ):
+    #             self.start_time = TimeUtil.now()
+    #             self.ticks = 0
 
-            self.is_busy = False
-            if LOG_TRACE_INFO:
-                logger.info(f"Id: {id(self)}| RateLimiter Unsetting busy", trace_info)
+    #         self.is_busy = False
+    #         if LOG_TRACE_INFO:
+    #             logger.info(f"Id: {id(self)}| RateLimiter Unsetting busy", trace_info)
 
 
 class RateLimiterSync:
@@ -121,9 +121,10 @@ class RateLimiterSync:
             target_time = self.start_time + datetime.timedelta(
                 milliseconds=(self.ticks - 1) * self.interval_ms()
             )
-            if target_time > TimeUtil.now():
-                time.sleep((target_time - TimeUtil.now()).total_seconds())
-            self.tick_start_time = TimeUtil.now()
+            current_time = TimeUtil.now()
+            if target_time > current_time:
+                time.sleep((target_time - current_time).total_seconds())
+            self.tick_start_time = current_time
         else:
             self.tick_start_time = TimeUtil.now()
             self.start_time = TimeUtil.now()

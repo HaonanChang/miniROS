@@ -252,7 +252,6 @@ class AsyncFreqTest(FreqTest):
             robot_action = await AsyncUtil.run_blocking_as_async(self.robot.apply_action, robot_action)
             self._control_log.append(robot_action)
 
-            await control_rate_limiter.unset_busy()
         logger.info("Quitting control loop.")
         # Set stop
         await AsyncUtil.run_blocking_as_async(self.robot.pause)
@@ -265,7 +264,6 @@ class AsyncFreqTest(FreqTest):
 
                 state = await AsyncUtil.run_blocking_as_async(self.robot.get_state)
 
-                await read_rate_limiter.unset_busy()
             except Exception as e:
                 break
             self._read_log.append(state)
@@ -393,8 +391,6 @@ class AsyncFreqTestMultiRobot(FreqTestMultiRobot):
             robot_action = RobotAction(joint_cmds=joint_cmds)
             robot_action = await AsyncUtil.run_blocking_as_async(self.multi_robot.apply_action_to, robot_name, robot_action)
             self._control_log[robot_name].append(robot_action)
-
-            await control_rate_limiter.unset_busy()
         # Set stop
         await AsyncUtil.run_blocking_as_async(self.multi_robot.pause)
         logger.info(f"Quitting control loop for robot {robot_name}.")
@@ -407,8 +403,6 @@ class AsyncFreqTestMultiRobot(FreqTestMultiRobot):
                 await read_rate_limiter.wait_for_tick()
                 state = await AsyncUtil.run_blocking_as_async(self.multi_robot.get_state_from, robot_name)
                 self._read_log[robot_name].append(state)
-
-                await read_rate_limiter.unset_busy()
             except Exception as e:
                 logger.error(f"Error in read loop for robot {robot_name}: {e}")
                 break

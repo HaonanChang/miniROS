@@ -92,7 +92,7 @@ class RSCamera(Camera):
         self._rs_pipeline = rs2.pipeline()
         self._rs_config = rs2.config() 
 
-        logger.debug(self.__class__.__name__, self.name, f"Enabling device")
+        logger.info(self.name, f"Enabling device")
         self._rs_config.enable_device(self.device_id)
 
         # Enable color
@@ -120,7 +120,7 @@ class RSCamera(Camera):
         # Configure frame buffer size
         self._sensor.set_option(rs2.option.frames_queue_size, 8)
 
-        logger.debug(self.__class__.__name__, self.name, f"Initialized camera")
+        logger.info(self.name, f"Initialized camera")
 
         # Start read loop
         self._read_thread = threading.Thread(target=self.read_loop)
@@ -202,16 +202,21 @@ class RSCamera(Camera):
         os.makedirs(tmp_dir, exist_ok=True)
         with self._handle_mutex:
             self._fh = open(self.tmp_file, "w")
+        logger.info(f"Started camera: {self.name}")
+        # Drop old frame
+        while not self._data_buffer.empty():
+            self._data_buffer.get()
         self._active_event.set()
 
     def pause(self):
+        logger.info(f"[1]: Pausing camera: {self.name}: Active: {self.is_active()}, Alive: {self.is_alive()}")
         if not self.is_active():
             # Can't be double paused
             logger.warning("Camera is not connected, can't be paused")
             return
-        # Clear the buffer
-        self._data_buffer.get()
         self._active_event.clear()
+        # Clear the buffer
+        logger.info(f"[2]: Paused camera: {self.name}: Active: {self.is_active()}, Alive: {self.is_alive()}")
         with self._handle_mutex:
             self._fh.close()
             self._fh = None

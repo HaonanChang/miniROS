@@ -25,23 +25,23 @@ if __name__ == "__main__":
     }
 
     os.makedirs(data_upload_dir, exist_ok=True)
-
-    goal_folder = os.path.join(data_upload_dir, LangUtil.make_uid())
-    os.makedirs(goal_folder, exist_ok=True)
-
     cameras = []
     for name, device_id in device_ids.items():
         camera = RSCamera(driver_config=RSCameraConfig(
             name=name,
             device_id=device_id,
-            width=1280,
-            height=720,
-            fps=30,
+            width=640,
+            height=480,
+            fps=60,
         ))
         camera.initialize()
         cameras.append(camera)
 
-    for iter in range(1):
+    time.sleep(3)  # Wait for cameras to initialize
+
+    for iter in range(2):
+        goal_folder = os.path.join(data_upload_dir, TimeUtil.now().strftime("%Y%m%d_%H%M%S"))
+        os.makedirs(goal_folder, exist_ok=True)
         for camera in cameras:
             camera.start()
             print(f"Current file: {camera.tmp_file}")

@@ -217,6 +217,14 @@ class Camera:
         """
         raise NotImplementedError("is_alive method is not implemented")
 
+    ###################### Optional Methods ######################
+    def reboot(self):
+        """
+        [Optional]
+        Reboot the camera.
+        """
+        pass
+
 ################################# Motor Device #################################
 @dataclass
 class MotorConfig:
