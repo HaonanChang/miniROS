@@ -5,8 +5,8 @@ import os
 import time
 import numpy as np
 from mini_ros.common.state import RobotAction
-from mini_ros.test.robot_frequency_test import MultiThreadFreqTestMultiRobot, create_timed_joint_cmds_traj
-from mini_ros.test.robot_frequency_test import AsyncFreqTestMultiRobot
+from mini_ros.system.robot_frequency_test import  MultiThreadMultiRobotTest, create_timed_joint_cmds_traj
+from mini_ros.system.robot_frequency_test import AsyncFreqTestMultiRobot
 from mini_ros.devices.robots.pika_gripper import PikaGripper, PikaGripperConfig
 from mini_ros.devices.robots.marvin_robot import MarvinRobot, MarvinRobotConfig
 from mini_ros.devices.io.recorder import EpisodeRecorder, RecorderConfig
@@ -38,12 +38,6 @@ END_POSE = {
     "pika": np.array([0.5]),
 }
 
-# def move_tmp_file(goal_folder: str, camera: RSCamera):
-#     target_path = pathlib.Path(goal_folder) / f"{camera.name}.jsonl"
-#     logger.info(f"Moving {camera.tmp_file} to {target_path}")
-#     # Move the file to the target folder
-#     os.replace(camera.tmp_file, str(target_path))
-
 
 def single_multi_thread_test(multi_robot: MultiRobotCamera, control_freqs: Dict[str, int], read_freqs: Dict[str, int], joint_cmds_traj: Dict[str, list[list[float]]], exp_idx=0, export_folder=""):
     if not multi_robot.is_active():
@@ -52,25 +46,15 @@ def single_multi_thread_test(multi_robot: MultiRobotCamera, control_freqs: Dict[
         multi_robot.apply_action_to(robot_name, RobotAction(timestamp=0, joint_cmds=joint_cmds_traj[robot_name][0]))
         time.sleep(1)
 
-    control_freq_str = "_".join([f"{robot_name}:{control_freq}" for robot_name, control_freq in control_freqs.items()])
-    read_freq_str = "_".join([f"{robot_name}:{read_freq}" for robot_name, read_freq in read_freqs.items()])
-
-    test = MultiThreadFreqTestMultiRobot(multi_robot, control_freqs=control_freqs, read_freqs=read_freqs, joint_cmds_traj=joint_cmds_traj)
+    test = MultiThreadMultiRobotTest(multi_robot, control_freqs=control_freqs, read_freqs=read_freqs, joint_cmds_traj=joint_cmds_traj)
     test.start()
     test.join()
-    test.generate_compare_fig(title=f"{export_folder}/{control_freq_str}-{read_freq_str}-e_{exp_idx}", y_margin=10)
+    test.generate_compare_fig(title=f"{export_folder}/e_{exp_idx}", y_margin=10)
     # # Save video from cameras
     # for camera_name in multi_robot_camera.cameras.keys():
     #     move_tmp_file(export_folder, multi_robot_camera.cameras[camera_name])
     # Generate video
     # generate_video(export_folder)
-
-def serial_test(multi_robot: MultiRobotCamera, control_freqs: Dict[str, int], read_freqs: Dict[str, int], joint_cmds_traj: Dict[str, list[list[float]]], exp_idx=0, export_folder=""):
-    if not multi_robot.is_active():
-        multi_robot.start()
-
-    test = MultiThreadFreqTestMultiRobot(multi_robot, control_freqs=control_freqs, read_freqs=read_freqs, joint_cmds_traj=joint_cmds_traj)
-    test.read_loop(device_name="top_camera", episode_length=2)
 
 
 async def single_async_test(multi_robot: MultiRobotCamera, control_freqs: Dict[str, int], read_freqs: Dict[str, int], joint_cmds_traj: Dict[str, list[list[float]]], exp_idx=0, export_folder=""):
@@ -126,16 +110,15 @@ if __name__ == "__main__":
     os.makedirs(data_upload_dir, exist_ok=True)
     
     multi_robot_camera = MultiRobotCamera(
-        # robots={
-        #     "marvin": MarvinRobot(MarvinRobotConfig()),
-        #     "pika-0": PikaGripper(PikaGripperConfig(port="/dev/ttyUSB0", read_size=0)),
-        #     "pika-1": PikaGripper(PikaGripperConfig(port="/dev/ttyUSB1", read_size=0)),
-        # }, 
-        # cameras={},
+        robots={
+            "marvin": MarvinRobot(MarvinRobotConfig()),
+            "pika-0": PikaGripper(PikaGripperConfig(port="/dev/ttyUSB0", read_size=0)),
+            "pika-1": PikaGripper(PikaGripperConfig(port="/dev/ttyUSB1", read_size=0)),
+        }, 
         cameras={
             "top_camera": RSCamera(RSCameraConfig(name="top_camera", device_id="341522302010", width=640, height=480, fps=60, data_upload_dir=data_upload_dir)),
-            # "left_camera": RSCamera(RSCameraConfig(name="left_camera", device_id="315122271722", width=640, height=480, fps=60, data_upload_dir=data_upload_dir)),
-            # "right_camera": RSCamera(RSCameraConfig(name="right_camera", device_id="315122271608", width=640, height=480, fps=60, data_upload_dir=data_upload_dir)),
+            "left_camera": RSCamera(RSCameraConfig(name="left_camera", device_id="315122271722", width=640, height=480, fps=60, data_upload_dir=data_upload_dir)),
+            "right_camera": RSCamera(RSCameraConfig(name="right_camera", device_id="315122271608", width=640, height=480, fps=60, data_upload_dir=data_upload_dir)),
         },
         recorders={
             "marvin": EpisodeRecorder(RecorderConfig(name="marvin", fps=60, max_episode_length=200, data_root_dir=data_upload_dir)),
@@ -170,7 +153,6 @@ if __name__ == "__main__":
         export_folder = os.path.join(data_upload_dir, f"e_{i:06d}")
         os.makedirs(export_folder, exist_ok=True)
         # asyncio.run(single_async_test(multi_robot_camera, control_freqs, read_freqs, joint_cmds_traj, exp_idx=0, export_folder=export_folder))
-        # single_multi_thread_test(multi_robot_camera, control_freqs, read_freqs, joint_cmds_traj, exp_idx=i, export_folder=export_folder)
-        serial_test(multi_robot_camera, control_freqs, read_freqs, joint_cmds_traj, exp_idx=i, export_folder=export_folder)
-
+        single_multi_thread_test(multi_robot_camera, control_freqs, read_freqs, joint_cmds_traj, exp_idx=i, export_folder=export_folder)
+        
     multi_robot_camera.stop()

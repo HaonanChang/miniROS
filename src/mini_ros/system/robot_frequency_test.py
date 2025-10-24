@@ -11,7 +11,7 @@ from typing import Union, Dict, Any
 from loguru import logger
 from mini_ros.utils.time_util import TimeUtil
 from mini_ros.utils.async_util import AsyncUtil
-from mini_ros.common.device import Robot
+from mini_ros.common.device import Robot, CameraData
 from mini_ros.wrapper.multi_robot import MultiRobotCamera
 from mini_ros.common.state import RobotAction, RobotState
 from mini_ros.utils.rate_limiter import RateLimiterAsync, RateLimiterSync
@@ -138,27 +138,34 @@ def draw_compare_fig(control_log: list[RobotAction], read_log: list[RobotState],
         raise ValueError(f"Invalid compare type: {compare_type}")
 
 
-def draw_freq_analysis_fig(control_log: list[RobotAction], read_log: list[RobotState], title="", y_margin=0.0) -> None:
+def draw_freq_analysis_fig(control_log: list[RobotAction], read_log: list[Union[RobotState, CameraData]], title="", y_margin=0.0) -> None:
     """
     Generate the frequency analysis figure of the control and read log.
     """
-    control_timestamp = [action.timestamp for action in control_log]
-    read_timestamp = [state.timestamp for state in read_log]
     # Align timestamp
-    time_0 = control_timestamp[0]
-    control_timestamp = [timestamp - time_0 for timestamp in control_timestamp]
-    read_timestamp = [timestamp - time_0 for timestamp in read_timestamp]
-    # Compute delta time
-    control_delta_time = np.diff(control_timestamp)
-    read_delta_time = np.diff(read_timestamp)
-
-    # Remove outliers
-    control_delta_time[control_delta_time > 0.2] = 0
-    read_delta_time[read_delta_time > 0.2] = 0
+    if len(control_log) > 0:
+        time_0 = control_log[0].timestamp
+        control_timestamp = [control.timestamp - time_0 for control in control_log]
+        control_delta_time = np.diff(control_timestamp)
+        control_delta_time[control_delta_time > 0.2] = 0.0
+    else:
+        control_timestamp = []
+        control_delta_time = []
+    if len(read_log) > 0:
+        time_0 = read_log[0].timestamp
+        read_timestamp = [state.timestamp - time_0 for state in read_log]
+        read_delta_time = np.diff(read_timestamp)
+        read_delta_time[read_delta_time > 0.2] = 0.0
+    else:
+        read_timestamp = []
+        read_delta_time = []
+    
     # Plot the frequency analysis figure
     plt.figure(figsize=(10, 5))
-    plt.scatter(control_timestamp[1:], control_delta_time, s=0.1, label="Control")
-    plt.scatter(read_timestamp[1:], read_delta_time, s=0.1, label="Read")
+    if len(control_delta_time) > 0:
+        plt.scatter(control_timestamp[1:], control_delta_time, s=0.1, label="Control")
+    if len(read_delta_time) > 0:
+        plt.scatter(read_timestamp[1:], read_delta_time, s=0.1, label="Read")
     plt.legend()
     plt.grid(True)
     plt.xlabel("Timestamp (s)")
@@ -167,6 +174,7 @@ def draw_freq_analysis_fig(control_log: list[RobotAction], read_log: list[RobotS
     plt.savefig(f"{title}_freq_analysis.png")
     logger.info(f"Saved figure to {title}_freq_analysis.png")
     plt.close()
+
 
 ################################### Mutli robot test ###################################
 class FreqTestMultiRobot:
@@ -191,12 +199,17 @@ class FreqTestMultiRobot:
 
     def join(self):
         pass
+
     def generate_compare_fig(self, compare_type: str = "joint_cmds", title="", y_margin=0.0) -> None:
         for robot_name in self.multi_robot.robots.keys():
             draw_compare_fig(control_log=self._control_log[robot_name], read_log=self._read_log[robot_name], compare_type=compare_type, title=f"{title}_{robot_name}", y_margin=y_margin)
-            draw_freq_analysis_fig(control_log=self._control_log[robot_name], read_log=self._read_log[robot_name], title=f"{title}_{robot_name}_freq_analysis")
+            draw_freq_analysis_fig(control_log=self._control_log[robot_name], read_log=self._read_log[robot_name], title=f"{title}_{robot_name}_freq")
 
-class MultiThreadFreqTestMultiRobot(FreqTestMultiRobot):
+        for camera_name in self.multi_robot.cameras.keys():
+            draw_freq_analysis_fig(control_log=[], read_log=self._read_log[camera_name], title=f"{title}_{camera_name}_freq")
+
+
+class MultiThreadMultiRobotTest(FreqTestMultiRobot):
     """
     Test the robot read & write method into multi-thread.
     """
@@ -282,6 +295,7 @@ class MultiThreadFreqTestMultiRobot(FreqTestMultiRobot):
 class AsyncFreqTestMultiRobot(FreqTestMultiRobot):
     """
     Test the robot read & write method into multi-thread.
+    TODO: Finish the async version later.
     """
     def __init__(self, multi_robot: MultiRobotCamera, joint_cmds_traj: Dict[str, list[list[float]]], control_freqs: Dict[str, int], read_freqs: Dict[str, int]):
         self.multi_robot: MultiRobotCamera = multi_robot
