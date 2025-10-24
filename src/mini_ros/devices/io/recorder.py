@@ -50,6 +50,9 @@ class EpisodeRecorder(Recorder):
         self.data_folder = None
         self.save_at_stop = config.save_at_stop
 
+    def initialize(self):
+        pass
+
     def is_active(self) -> bool:
         """
         Active status means the recorder can receive data.

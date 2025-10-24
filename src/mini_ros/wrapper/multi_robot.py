@@ -12,14 +12,15 @@ class MultiRobotSystem(Robot):
     """
     name: str = "multi_robot"
 
-    def __init__(self, devices: Dict[str, Robot | Camera | Recorder | Device] = {}):
+    def __init__(self, devices: List[Robot | Camera | Recorder | Device] = []):
         """
         """
         self.devices = {}
         self.robots = {}
         self.cameras = {}
         self.recorders = {}
-        for device_name, device in devices.items():
+        for device in devices:
+            device_name = device.name
             if isinstance(device, Robot):
                 self.robots[device_name] = device
             elif isinstance(device, Camera):

@@ -31,6 +31,7 @@ class PIKACommandType(Enum):
 
 @dataclass
 class PikaGripperConfig:
+    name: str = "pika"
     port: str | None = None
     baudrate: int = 460800
     max_motor_torque_current: float = 2.0
@@ -42,12 +43,12 @@ class PikaGripper(Robot):
     """
     Pika gripper interface.
     """
-    name: str = "pika"
     
     def __init__(
         self,
         config: PikaGripperConfig = PikaGripperConfig(),
     ) -> None:
+        self.name = config.name
         self.port = config.port
         self.baudrate = config.baudrate
         self.timeout = config.timeout

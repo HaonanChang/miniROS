@@ -32,6 +32,7 @@ from mini_ros.network.network_queue import WebQueue, Many2OneSender, Many2OneRec
 class ParallelRobotConfig:
     control_freqs: Dict[str, int] = field(default_factory=dict)
     read_freqs: Dict[str, int] = field(default_factory=dict)
+    episode_length: int = 4
 
 
 class ParallelRobotMT:
@@ -43,6 +44,7 @@ class ParallelRobotMT:
         self.multi_robot: MultiRobotSystem = multi_robot
         self.control_freqs = config.control_freqs
         self.read_freqs = config.read_freqs
+        self.episode_length = config.episode_length
         self.stop_event = threading.Event()
         self.stop_event.clear()
 
@@ -53,7 +55,13 @@ class ParallelRobotMT:
         self.action_mutex: Dict[str, threading.Lock] = {robot_name: threading.Lock() for robot_name in self.multi_robot.robots.keys()}
         self.action_buffer: Dict[str, RobotAction] = {robot_name: None for robot_name in self.multi_robot.robots.keys()}
 
+    def initialize(self):
+        self.multi_robot.initialize()
+        return True
+
     def start(self):
+        self.multi_robot.start()
+
         self.control_threads = []
         self.read_threads = []
         for device_name in self.multi_robot.device_keys:
@@ -73,6 +81,9 @@ class ParallelRobotMT:
             read_thread.join()
             update_control_thread.join()
 
+    def stop(self):
+        self.multi_robot.stop()
+
     def get_update_control_threads(self) -> List[threading.Thread]:
         """
         Update the control loop.
@@ -84,7 +95,7 @@ class ParallelRobotMT:
         Loop control the data.
         """
         control_rate_limiter = RateLimiterSync(self.control_freqs[robot_name])
-        logger.info(f"Starting control thread for robot {robot_name}. Active: {self.multi_robot.is_active()}")
+        logger.info(f"Start control thread for robot {robot_name}. Active: {self.multi_robot.is_active()}")
         last_robot_action: RobotAction = None
         while True:
             if not self.is_alive():
@@ -109,17 +120,17 @@ class ParallelRobotMT:
                 logger.error(f"Error in control loop for robot {robot_name}: {type(e).__name__}: {e}")
                 break
 
-    def read_loop(self, device_name: str, episode_length: int = 4) -> None:
+    def read_loop(self, device_name: str) -> None:
         """
         Reading loop. Switch to next episode after episode_length seconds.
         """
         read_rate_limiter = RateLimiterSync(self.read_freqs[device_name])
-        logger.info(f"Starting read loop for robot {device_name}. Active: {self.multi_robot.is_active()}")
 
         while True:
             if not self.is_alive():
                 break
 
+            logger.info(f"Start read loop for {device_name}. Active: {self.multi_robot.is_active()}")
             # Start a new episode
             try:
                 read_rate_limiter.reset()
@@ -130,7 +141,7 @@ class ParallelRobotMT:
 
             # Read the data for the episode
             start_time = TimeUtil.now()
-            while (TimeUtil.now() - start_time).total_seconds() < episode_length:
+            while (TimeUtil.now() - start_time).total_seconds() < self.episode_length or self.episode_length <= 0:
                 try:
                     read_rate_limiter.wait_for_tick()
                     state = self.multi_robot.get_state_from(device_name, is_record=True)
@@ -154,8 +165,6 @@ class ParallelRobotMT:
                 if not self.is_alive():
                     logger.info(f"Stop event set, quitting read loop for {device_name}...")
                     return
-
-            logger.info(f"Read loop for {device_name} resumed")
             
         logger.info(f"Quitting read loop for robot {device_name}.")
 
@@ -211,7 +220,7 @@ class WebParallelRobotMT(ParallelRobotMT):
         for web_write_thread, web_read_thread in zip(self.web_write_threads, self.web_read_threads):
             web_write_thread.join()
             web_read_thread.join()
-
+        
     def web_read_loop(self, web_name: str) -> None:
         """
         Web read loop.

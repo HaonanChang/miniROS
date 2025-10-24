@@ -50,11 +50,6 @@ def single_multi_thread_test(multi_robot: MultiRobotSystem, control_freqs: Dict[
     test.start()
     test.join()
     test.generate_compare_fig(title=f"{export_folder}/e_{exp_idx}", y_margin=10)
-    # # Save video from cameras
-    # for camera_name in multi_robot_camera.cameras.keys():
-    #     move_tmp_file(export_folder, multi_robot_camera.cameras[camera_name])
-    # Generate video
-    # generate_video(export_folder)
 
 
 async def single_async_test(multi_robot: MultiRobotSystem, control_freqs: Dict[str, int], read_freqs: Dict[str, int], joint_cmds_traj: Dict[str, list[list[float]]], exp_idx=0, export_folder=""):

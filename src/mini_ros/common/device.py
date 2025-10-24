@@ -53,15 +53,6 @@ class Recorder(Device):
         """
         pass
 
-    @abstractmethod
-    def apply_action(self, data: Any, key: str):
-        """
-        Put the data into the data buffer.
-        NOTE: Put must be a non-blocking call. 
-        Because it will be called in other time-sensitive threads.
-        """
-        pass
-
 
 class Robot(Device):
     """

@@ -29,6 +29,7 @@ from third_party.marvin_sdk.structure_data import DCSS
 
 @dataclass
 class MarvinRobotConfig:
+    name: str = "marvin"
     port: str = "192.168.1.190"
     baudrate: int = 115200
     timeout: float = 1.0
@@ -58,9 +59,9 @@ class MarvinRobot(Robot):
     """
     Marvin robot interface.
     """
-    name: str = "marvin"
 
     def __init__(self, config: MarvinRobotConfig):
+        self.name = config.name
         self.port = config.port
         self.baudrate = config.baudrate
         self.timeout = config.timeout
@@ -138,29 +139,38 @@ class MarvinRobot(Robot):
         """
         self.robot = Marvin_Robot()
         self.robot.connect(self.port)
-        start_time = TimeUtil.now()
-        while (TimeUtil.now() - start_time).total_seconds() < self.init_timeout:
-            state = self.get_state()
-            if state is not None and self.is_state_valid(state):
-                break
-            time.sleep(0.1)
-        if state is None or not self.is_state_valid(state):
-            logger.error(f"Failed to initialize Marvin robot in {self.init_timeout} seconds")
-            return False
-        logger.info(f"Initialized Marvin robot in {TimeUtil.get_elapsed_time_ms(start_time)} ms")
+
+        # Clear error
+        self.robot.clear_error("A")
+        self.robot.clear_error("B")
+        time.sleep(0.1)
+
         self._connect_event.set()
         return True
+
+    def _wait_for_robot_ready(self, timeout: float = 1.0):
+        """
+        Wait for the robot to be ready.
+        """
+        start_time = TimeUtil.now()
+        while (TimeUtil.now() - start_time).total_seconds() < timeout:
+            state = self.get_state()
+            if state is not None and self.is_state_valid(state):
+                return True
+            time.sleep(0.1)
+        return False
 
     def _start_robot(self):
         """
         Open the control of robot.
         """
+        start_time = TimeUtil.now()
         if self.mute_skd_log:
             IOUtil.mute()
         # Clear error
         self.robot.clear_error("A")
         self.robot.clear_error("B")
-        time.sleep(0.25)
+        time.sleep(0.1)
 
         # Set dynamic params
         self.robot.clear_set()
@@ -191,6 +201,11 @@ class MarvinRobot(Robot):
         time.sleep(0.25)
         if self.mute_skd_log:
             IOUtil.restore()
+
+        if not self._wait_for_robot_ready(timeout=5.0):
+            logger.error(f"Failed to start Marvin robot in 5.0 seconds")
+            raise RobotExecuteError(f"Failed to start Marvin robot in 5.0 seconds")
+        logger.info(f"Started Marvin robot in {TimeUtil.get_elapsed_time_ms(start_time)} ms")
     
     def _pause_robot(self):
         """
