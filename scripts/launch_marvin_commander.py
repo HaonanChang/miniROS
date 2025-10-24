@@ -10,7 +10,7 @@ from mini_ros.devices.io.web_wrapper import CommanderWebWrapper, bind_apis
 from mini_ros.utils.config import LazyConfig
 from mini_ros.utils.async_util import AsyncUtil
 from mini_ros.utils.cli_util import CliUtil
-from mini_ros.wrapper.parallel_robot import ParallelRobotMultiThread, ParallelRobotConfig
+from mini_ros.wrapper.parallel_robot import ParallelRobotMT, ParallelRobotConfig
 from mini_ros.wrapper.multi_robot import MultiRobotSystem
 from loguru import logger
 
@@ -27,7 +27,7 @@ async def main():
 
     # Build 
     multi_robot = MultiRobotSystem(devices={"gello": gello})
-    parallel_robot = ParallelRobotMultiThread(multi_robot, ParallelRobotConfig(
+    parallel_robot = ParallelRobotMT(multi_robot, ParallelRobotConfig(
         control_freqs={
             "gello": 60,
         },

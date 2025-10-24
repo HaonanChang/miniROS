@@ -9,7 +9,7 @@ In current version, cameras nodes are under this node.
 import asyncio
 from typing import Dict, Any
 from mini_ros.common.state import RDCState
-from mini_ros.network.network_queue import QueueDealerSender, QueueSubRecver
+from mini_ros.network.network_queue import Many2OneSender, Many2OneRecver
 from mini_ros.common.device import Camera
 
 
@@ -19,8 +19,8 @@ class FileNode:
     """
     def __init__(self, cameras: Dict[str, Camera], file_cfg: Dict[str, Any] = {}):
         self.file_cfg = file_cfg
-        self.rdc_state_recver = QueueSubRecver(name="rdc_state", port=file_cfg.get("rdc_state_pub_port", 5006))
-        self.file_node_state_sender = QueueDealerSender(name="file_node_state", port=file_cfg.get("rdc_state_recv_port", 5007))
+        self.rdc_state_recver = Many2OneRecver(name="rdc_state", port=file_cfg.get("rdc_state_pub_port", 5006))
+        self.file_node_state_sender = Many2OneSender(name="file_node_state", port=file_cfg.get("rdc_state_recv_port", 5007))
 
     async def camera_obs_loop(self):
         pass

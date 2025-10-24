@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from mini_ros.common.state import CommanderState
 from mini_ros.utils.time_util import TimeUtil
 from mini_ros.utils.rate_limiter import RateLimiterAsync
-from mini_ros.network.network_queue import QueuePubSender, QueueRouterRecver
+from mini_ros.network.network_queue import One2ManySender, Many2OneRecver
 from loguru import logger
 
 
@@ -21,7 +21,7 @@ class CommanderNode:
     """
     Commander node.
     """
-    
+
     def __init__(self, commander_cfg: Dict[str, Any] = {}):
         self.commander_cfg = commander_cfg
         self.commander_state = CommanderState.INIT
@@ -34,9 +34,9 @@ class CommanderNode:
         self._process_rate_limiter = RateLimiterAsync(50)  # Refresh SM in 50 Hz
         # Network interface
         # Publish commander state to all devices
-        self.commander_state_sender = QueuePubSender(name="commander_state", port=commander_cfg.get("commander_state_pub_port", 5008))
+        self.commander_state_sender = One2ManySender(name="commander_state", port=commander_cfg.get("commander_state_pub_port", 5008))
         # Receive device state from all devices
-        self.device_state_recver = QueueRouterRecver(name="device_state", port=commander_cfg.get("device_state_recv_port", 5009))
+        self.device_state_recver = Many2OneRecver(name="device_state", port=commander_cfg.get("device_state_recv_port", 5009))
 
     async def initialize(self):
         pass

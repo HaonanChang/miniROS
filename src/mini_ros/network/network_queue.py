@@ -20,7 +20,32 @@ from mini_ros.utils.net_util import NetUtil
 # Dealer sender & router recver. Support multiple senders sending to the same recver.  #
 ########################################################################################
 
-class QueueDealerSender:
+class WebQueue:
+    """
+    """
+    def put(self, data: Any):
+        pass
+    
+    def get(self):
+        pass
+    
+    def is_empty(self):
+        pass
+    
+    def is_full(self):
+        pass
+    
+    def size(self):
+        pass
+    
+    def polling_loop(self):
+        pass
+    
+    def start_in_thread(self):
+        pass
+
+
+class Many2OneSender(WebQueue):
     """
     Sender for NetworkQueue. Used for sending data to the recver.
     """
@@ -87,7 +112,7 @@ class QueueDealerSender:
         raise NetworkError(f"Only servers can check the size of the queue, not clients {self.name}.")
     
 
-class QueueRouterRecver:
+class Many2OneRecver(WebQueue):
     """
     Recver for NetworkQueue. Used for receiving data from the senders.
     Put using Sender, get using Recver.
@@ -199,7 +224,7 @@ class QueueRouterRecver:
 # Pub sender & sub recver. Support one sender sending to multiple recvers.           #
 ########################################################################################
 
-class QueuePubSender:
+class One2ManySender(WebQueue):
     """
     Sender for NetworkQueue. Used for sending data to multiple recvers.
     Uses PUB socket to send to multiple SUB receivers.
@@ -220,6 +245,7 @@ class QueuePubSender:
 
     def put(self, data: Any, timestamp: float = None, code: str = "normal"):
         """
+        Put is non-blocking.
         Put data into the queue.
         Send the data to all connected subscribers through ZMQ.
         Send format: [timestamp, code, data, counter]
@@ -259,7 +285,7 @@ class QueuePubSender:
         raise NetworkError(f"Only subscribers can check the size of the queue, not publishers {self.name}.")
 
 
-class QueueSubRecver:
+class One2ManyRecver(WebQueue):
     """
     Recver for NetworkQueue. Used for receiving data from a pub sender.
     Uses SUB socket to receive from a PUB sender.
@@ -282,6 +308,11 @@ class QueueSubRecver:
         logger.info(f"Subscriber {self.name} connected to port {self.port}")
 
     def get(self, timeout: int = 10):
+        """
+        Get is blocking.
+        Get data from the queue.
+        Return: data if successful, None if timed out.
+        """
         # Get data from queue
         try:
             return self.queue.get(timeout=timeout)

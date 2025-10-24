@@ -14,7 +14,7 @@ from mini_ros.devices.robots.marvin_robot import MarvinRobot
 from mini_ros.devices.robots.pika_gripper import PikaGripper
 from mini_ros.common.state import CommanderState, RobotNodeState
 from mini_ros.common.device import Robot, Device
-from mini_ros.network.network_queue import QueueDealerSender, QueueSubRecver
+from mini_ros.network.network_queue import Many2OneSender, Many2OneRecver
 from mini_ros.utils.rate_limiter import RateLimiterAsync
 from mini_ros.utils.async_util import AsyncUtil
 
@@ -35,11 +35,11 @@ class RobotNode:
         name_suffix = node_cfg.get("name_suffix", "")
         name = f"{name_prefix}{name_suffix}"
         # Send robot observations to the FileIONode
-        self.obs_sender = QueueDealerSender(name=f"{name}_obs", port=node_cfg.get("obs_port", 5005))
+        self.obs_sender = Many2OneSender(name=f"{name}_obs", port=node_cfg.get("obs_port", 5005))
         # Receive the RDC state from the RDC state node
-        self.commander_state_recver = QueueSubRecver(name=f"{name}_commander_state", port=node_cfg.get("commander_state_pub_port", 5008))
+        self.commander_state_recver = Many2OneRecver(name=f"{name}_commander_state", port=node_cfg.get("commander_state_pub_port", 5008))
         # Send internal state to the RDC state node
-        self.robot_node_state_sender = QueueDealerSender(name=f"{name}_state", port=node_cfg.get("device_state_recv_port", 5007))
+        self.robot_node_state_sender = Many2OneSender(name=f"{name}_state", port=node_cfg.get("device_state_recv_port", 5007))
         # Internal buffer for sharing control & obs
         self._obs_buffer: Dict[str, asyncio.Queue] = {name: asyncio.Queue(maxsize=1) for name in devices.keys()}
         self._control_buffer = Dict[str, asyncio.Queue] = {name: asyncio.Queue(maxsize=1) for name in devices.keys()}
