@@ -3,9 +3,15 @@ General mocked driver, you can define the input you want.
 """
 
 from typing import Optional, Sequence, List
+from dataclasses import dataclass
 import numpy as np
 from loguru import logger
 from mini_ros.common.device import MotorReader, MotorConfig, motor_config_from_json
+
+
+@dataclass
+class MockMotorConfig:
+    id: int
 
 
 class MockMotorReader(MotorReader):
@@ -15,25 +21,15 @@ class MockMotorReader(MotorReader):
 
     def __init__(
         self,
-        ids: Sequence[int],
-        name=None,
-        port: str = "/dev/ttyUSB0",
-        baudrate: int = 1000000,
-        default_output: Sequence[int] = [],
+        motor_configs: List[MockMotorConfig],
     ):
-        self._ids = ids
-        self._port = port
-        self._baudrate = baudrate
-        self._name = name
-        self._default_output = default_output
+        self.motor_configs = motor_configs
 
     def name(self) -> str:
-        if self._name is not None:
-            return self._name
+        return "mock_motor"
 
-    def initialize(self, joint_config: List[MotorConfig]):
-        self.joint_config = joint_config
-        self.num_joints = len(self.joint_config)
+    def initialize(self):
+        self.num_joints = len(self.motor_configs)
         logger.info("Initializing mock motor reader.")
     
     def get_state(self):

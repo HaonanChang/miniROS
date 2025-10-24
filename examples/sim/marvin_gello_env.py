@@ -15,8 +15,8 @@ if __name__ == "__main__":
     with open(joint_map_file, "r") as f:
         joint_config = yaml.load(f, Loader=yaml.FullLoader)
     motor_config = motor_config_from_json(joint_config)
-    gello = FeetechReader()
-    gello.initialize(motor_config)
+    gello = FeetechReader(motor_config)
+    gello.initialize()
 
     env = MarvinEnv(is_new_version=True)
     env.reset()

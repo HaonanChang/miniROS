@@ -10,7 +10,7 @@ from mini_ros.system.robot_frequency_test import AsyncFreqTestMultiRobot
 from mini_ros.devices.robots.pika_gripper import PikaGripper, PikaGripperConfig
 from mini_ros.devices.robots.marvin_robot import MarvinRobot, MarvinRobotConfig
 from mini_ros.devices.io.recorder import EpisodeRecorder, RecorderConfig
-from mini_ros.wrapper.multi_robot import MultiRobotCamera
+from mini_ros.wrapper.multi_robot import MultiRobotSystem
 from mini_ros.devices.cameras.rs_camera import RSCamera, RSCameraConfig
 from mini_ros.utils.time_util import TimeUtil
 from mini_ros.utils.lang_util import LangUtil
@@ -39,7 +39,7 @@ END_POSE = {
 }
 
 
-def single_multi_thread_test(multi_robot: MultiRobotCamera, control_freqs: Dict[str, int], read_freqs: Dict[str, int], joint_cmds_traj: Dict[str, list[list[float]]], exp_idx=0, export_folder=""):
+def single_multi_thread_test(multi_robot: MultiRobotSystem, control_freqs: Dict[str, int], read_freqs: Dict[str, int], joint_cmds_traj: Dict[str, list[list[float]]], exp_idx=0, export_folder=""):
     if not multi_robot.is_active():
         multi_robot.start()
     for robot_name in multi_robot.robots.keys():
@@ -57,7 +57,7 @@ def single_multi_thread_test(multi_robot: MultiRobotCamera, control_freqs: Dict[
     # generate_video(export_folder)
 
 
-async def single_async_test(multi_robot: MultiRobotCamera, control_freqs: Dict[str, int], read_freqs: Dict[str, int], joint_cmds_traj: Dict[str, list[list[float]]], exp_idx=0, export_folder=""):
+async def single_async_test(multi_robot: MultiRobotSystem, control_freqs: Dict[str, int], read_freqs: Dict[str, int], joint_cmds_traj: Dict[str, list[list[float]]], exp_idx=0, export_folder=""):
     if not multi_robot.is_active():
         multi_robot.start()
 
@@ -109,7 +109,7 @@ if __name__ == "__main__":
     data_upload_dir = "./tmp_data"
     os.makedirs(data_upload_dir, exist_ok=True)
     
-    multi_robot_camera = MultiRobotCamera(
+    multi_robot_camera = MultiRobotSystem(
         robots={
             "marvin": MarvinRobot(MarvinRobotConfig()),
             "pika-0": PikaGripper(PikaGripperConfig(port="/dev/ttyUSB0", read_size=0)),

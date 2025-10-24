@@ -10,7 +10,8 @@ from loguru import logger
 ############################## Device Base Class ##############################
 class Device(ABC):
     """
-    Device base class
+    Device base class.
+    Base device is supposed to be read-only.
     """
     
     def __init__(self, name: str):
@@ -41,47 +42,10 @@ class Device(ABC):
         raise NotImplementedError("stop_record method is not implemented")
 
 
-class Reader(ABC):
-    """
-    Base class for all readers.
-    """
-    name: str
-
-    @abstractmethod
-    def initialize(self, driver_config: Any):
-        pass
-
-    @abstractmethod
-    def get_state(self) -> Any:
-        pass
-
-    @abstractmethod
-    def stop(self):
-        pass
-
-
-class Recorder:
+class Recorder(Device):
     def __init__(self, config: Any):
         pass
 
-    @abstractmethod
-    def initialize(self, config: Any):
-        pass
-
-    @abstractmethod
-    def start(self, episode_name: str):
-        """
-        NOTE: Start is a blocking call.
-        """
-        pass
-    
-    @abstractmethod
-    def stop(self):
-        """
-        NOTE: Stop is a blocking call.
-        """
-        pass
-    
     @abstractmethod
     def save(self):
         """
@@ -90,18 +54,13 @@ class Recorder:
         pass
 
     @abstractmethod
-    def put(self, data: Any, name: str):
+    def apply_action(self, data: Any, key: str):
         """
+        Put the data into the data buffer.
         NOTE: Put must be a non-blocking call. 
         Because it will be called in other time-sensitive threads.
         """
         pass
-
-    def is_active(self) -> bool:
-        """
-        Check if the recorder is active.
-        """
-        raise NotImplementedError("is_active method is not implemented")
 
 
 class Robot(Device):
@@ -142,6 +101,9 @@ class Robot(Device):
             logger.warning(f"{self.name} is not connected, can't be started")
             return
         self._start_robot()
+
+        if self.recorder is not None:
+            self.recorder.start()
         # Set active event
         self._active_event.set()
 
@@ -151,7 +113,7 @@ class Robot(Device):
         Start recording the robot.
         """
         if self.recorder is not None:
-            self.recorder.start(episode_name)
+            self.recorder.start_record(episode_name)
         else:
             logger.warning(f"Recorder is not bound to {self.name}, can't start recording")
     
@@ -161,8 +123,8 @@ class Robot(Device):
         Stop recording the robot.
         """
         if self.recorder is not None:
-            logger.info(f"Saving recorder: {self.name}")
-            self.recorder.save()
+            logger.info(f"Stopping recording: {self.name}")
+            self.recorder.stop_record()
         else:
             logger.warning(f"Recorder is not bound to {self.name}, can't stop recording")
             
@@ -292,6 +254,8 @@ class Robot(Device):
 class Camera(Device):
     """
     Base class for all cameras.
+    Camera is one type of Devices. 
+    The major difference is that Camera is IO-heavy, so we can choose to save the data locally on fly.
     """
     name: str
 
@@ -402,17 +366,18 @@ def motor_config_from_json(config_json: Dict[str, Any], include_names: List[str]
     return joint_config
 
 
-class MotorReader(Reader):
+class MotorReader(Device):
     """
     Motor driver interface (Blocking version).
     Implement this method.
     """
 
-    def __init__(self):
+    def __init__(self, motor_configs: List[MotorConfig]):
         pass
 
-    def initialize(self, joint_config: List[MotorConfig]):
-        self.joint_config = joint_config
+    @abstractmethod
+    def initialize(self):
+        pass
 
     @abstractmethod
     def get_state(self):
@@ -457,7 +422,7 @@ class MotorReader(Reader):
 
 
 ################################# Tracker Device #################################
-class Tracker(Reader):
+class Tracker(Device):
     """
     Base class for all 6D pose trackers.
     """

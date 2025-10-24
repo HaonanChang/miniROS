@@ -31,17 +31,16 @@ class DynamixelReader(MotorReader):
     """
     name = "dynamixel"
 
-    def __init__(self):
-        pass
+    def __init__(self, motor_configs: List[MotorConfig]):
+        self.motor_configs = motor_configs
 
-    def initialize(self, joint_config: List[MotorConfig]):
-        self.joint_config = joint_config
+    def initialize(self):
         self.dynamixel_handlers = {}  # port -> (port_handler, packet_handler)
         self.port_to_joints = {}      # port -> list of joint_names
         self.joint_to_port_info = {}  # joint_name -> (port, device_id)
         self.joint_to_qpos_idx = {}
         self.group_readers = {}       # port -> GroupSyncRead objec
-        self.num_joints = len(self.joint_config)
+        self.num_joints = len(self.motor_configs)
 
         # Dynamixel settings
         self.PROTOCOL_VERSION = 2.0
@@ -63,7 +62,7 @@ class DynamixelReader(MotorReader):
         # Group joints by port
         port_device_ids = {}  # port -> list of device_ids
         
-        for joint_config in self.joint_config:
+        for joint_config in self.motor_configs:
             port = joint_config.port
             device_id = joint_config.id
             
@@ -136,15 +135,15 @@ class DynamixelReader(MotorReader):
     def _setup_joint_mappings(self):
         """Setup joint name to qpos index mappings"""
         joint_name_mapping = {
-            name: i for i, name in enumerate([joint_config.joint_name for joint_config in self.joint_config])
+            name: i for i, name in enumerate([joint_config.joint_name for joint_config in self.motor_configs])
         }
-        for joint_name in [joint_config.joint_name for joint_config in self.joint_config]:
+        for joint_name in [joint_config.joint_name for joint_config in self.motor_configs]:
             if joint_name in joint_name_mapping:
                 self.joint_to_qpos_idx[joint_name] = joint_name_mapping[joint_name]
                 logger.info(f"Mapping {joint_name} -> qpos[{joint_name_mapping[joint_name]}]")
 
     def get_gello_info(self):
-        return self.joint_config
+        return self.motor_configs
     
     def get_state(self):
         # Read all Dynamixel motors using fast GroupSyncRead
@@ -199,7 +198,7 @@ class DynamixelReader(MotorReader):
                     all_joint_angles[joint_name] = None
         
         # Apply calibration corrections and update model (focus on right arm)
-        for joint_config in self.joint_config:
+        for joint_config in self.motor_configs:
             joint_name = joint_config.joint_name
             if joint_name in all_joint_angles and all_joint_angles[joint_name] is not None:
                 corrected_read = self.calibrate_read(all_joint_angles[joint_name], joint_config)

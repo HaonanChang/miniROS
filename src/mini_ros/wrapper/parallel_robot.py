@@ -1,6 +1,12 @@
 """
 Parallel robot system.
 Support multiple-thread & asyncio.
+Already implemented: multi-thread version. To be implemented: asyncio version.
+
+You can drop an multi-robot-cameras into it. 
+
+It will set-up a reading loop for each device.
+It will set-up a control loop for each robot.
 """
 from math import log
 from copy import deepcopy
@@ -9,27 +15,37 @@ import threading
 import time
 import asyncio
 import numpy as np
+from dataclasses import dataclass, field
 from typing import Union, Dict, Any, List
 from loguru import logger
 from mini_ros.utils.time_util import TimeUtil
 from mini_ros.utils.async_util import AsyncUtil
 from mini_ros.common.device import Robot, CameraData
-from mini_ros.wrapper.multi_robot import MultiRobotCamera
+from mini_ros.wrapper.multi_robot import MultiRobotSystem
 from mini_ros.common.state import RobotAction, RobotState
 from mini_ros.utils.rate_limiter import RateLimiterAsync, RateLimiterSync
+
+
+@dataclass
+class ParallelRobotConfig:
+    control_freqs: Dict[str, int] = field(default_factory=dict)
+    read_freqs: Dict[str, int] = field(default_factory=dict)
 
 
 class ParallelRobotMultiThread:
     """
     Parallel robot system.
-    Support multiple-thread & asyncio.
+    Support multiple-thread.
     """
-    def __init__(self, multi_robot: MultiRobotCamera, control_freqs: Dict[str, int], read_freqs: Dict[str, int]):
-        self.multi_robot: MultiRobotCamera = multi_robot
-        self.control_freqs = control_freqs
-        self.read_freqs = read_freqs
+    def __init__(self, multi_robot: MultiRobotSystem, config: ParallelRobotConfig):
+        self.multi_robot: MultiRobotSystem = multi_robot
+        self.control_freqs = config.control_freqs
+        self.read_freqs = config.read_freqs
         self.stop_event = threading.Event()
         self.stop_event.clear()
+
+        self.pause_read_event = threading.Event()
+        self.pause_read_event.clear()
         # Control buffer
         # This control buffer can update in multi-thread's way
         self.control_mutex: Dict[str, threading.Lock] = {robot_name: threading.Lock() for robot_name in self.multi_robot.robots.keys()}
@@ -83,7 +99,8 @@ class ParallelRobotMultiThread:
                         if last_robot_action is not None:
                             robot_action = deepcopy(last_robot_action)
                         else:
-                            raise ValueError(f"No robot action to apply for robot {robot_name}!")
+                            logger.warning(f"No robot action to apply for robot {robot_name}! Keep waiting.")
+                            continue
 
                 timed_robot_action = self.multi_robot.apply_action_to(robot_name, robot_action, is_record=True)
             except Exception as e:
@@ -96,18 +113,20 @@ class ParallelRobotMultiThread:
         """
         read_rate_limiter = RateLimiterSync(self.read_freqs[device_name])
         logger.info(f"Starting read loop for robot {device_name}. Active: {self.multi_robot.is_active()}")
-        episode_idx = 0
+
         while True:
             if self.stop_event.is_set() or not self.multi_robot.is_alive():
                 break
 
+            # Start a new episode
             try:
                 read_rate_limiter.reset()
-                self.multi_robot.start_record_at(device_name=device_name, episode_name=f"e_{episode_idx:06d}")
-                episode_idx += 1
+                self.multi_robot.start_record_at(device_name=device_name, episode_name=f"{TimeUtil.now().strftime('%Y%m%d_%H%M%S')}")    
             except Exception as e:
                 logger.error(f"Error in start record for {device_name}: {e}")
                 break
+
+            # Read the data for the episode
             start_time = TimeUtil.now()
             while (TimeUtil.now() - start_time).total_seconds() < episode_length:
                 try:
@@ -116,8 +135,24 @@ class ParallelRobotMultiThread:
                 except Exception as e:
                     logger.error(f"Error in read loop for {device_name}: {type(e).__name__}: {e}")
                     break
+
+                if self.pause_read_event.is_set():
+                    break
+
+                if self.stop_event.is_set() or not self.multi_robot.is_alive():
+                    logger.info(f"Stop event set, quitting read loop for {device_name}...")
+                    break
+            
+            # Record the data at the end of the episode
             self.multi_robot.stop_record_at(device_name=device_name)
-            logger.info(f"Start waiting for next episode {device_name}")
-            time.sleep(2)
-            logger.info(f"Switch to next episode at {episode_idx:06d}")
+            
+            logger.info(f"Read loop for {device_name} paused, waiting for start next episode...")
+            while self.pause_read_event.is_set():
+                time.sleep(0.1)
+                if self.stop_event.is_set() or not self.multi_robot.is_alive():
+                    logger.info(f"Stop event set, quitting read loop for {device_name}...")
+                    return
+
+            logger.info(f"Read loop for {device_name} resumed")
+            
         logger.info(f"Quitting read loop for robot {device_name}.")

@@ -2,33 +2,42 @@ from typing import Any, List, Dict
 from loguru import logger
 from mini_ros.utils.async_util import AsyncUtil
 from mini_ros.devices.io.recorder import EpisodeRecorder
-from mini_ros.common.device import Robot, RobotAction, RobotState, Camera, Recorder
+from mini_ros.common.device import Robot, RobotAction, RobotState, Camera, Recorder, Device
 
 
-class MultiRobotCamera(Robot):
+class MultiRobotSystem(Robot):
     """
     Wrapper for multiple robots and multiple cameras.
     You can load multiple robots on one union interface.
     """
     name: str = "multi_robot"
 
-    def __init__(self, robots: Dict[str, Robot] = {}, cameras: Dict[str, Camera] = {}, recorders: Dict[str, Recorder] = {}):
+    def __init__(self, devices: Dict[str, Robot | Camera | Recorder | Device] = {}):
         """
         """
-        self.robots = robots
-        self.cameras = cameras
-        self.recorders = recorders
-        # Bind recorders to robots and cameras
+        self.devices = {}
+        self.robots = {}
+        self.cameras = {}
+        self.recorders = {}
+        for device_name, device in devices.items():
+            if isinstance(device, Robot):
+                self.robots[device_name] = device
+            elif isinstance(device, Camera):
+                self.cameras[device_name] = device
+            elif isinstance(device, Recorder):
+                self.recorders[device_name] = device
+            elif isinstance(device, Device):
+                # Other devices
+                self.devices[device_name] = device
+            else:
+                raise ValueError(f"Device {device_name} is not a valid device")
+
+        # Bind recorders to robots
         for robot_name in self.robots.keys():
             if robot_name in self.recorders.keys():
                 self.robots[robot_name].bind_recorder(self.recorders[robot_name])
             else:
                 logger.warning(f"Recorder for robot {robot_name} not found, will not record data")
-        for camera_name in self.cameras.keys():
-            if camera_name in self.recorders.keys():
-                self.cameras[camera_name].bind_recorder(self.recorders[camera_name])
-            else:
-                logger.warning(f"Recorder for camera {camera_name} not found, will not record data")
 
     def initialize(self):
         """
@@ -83,14 +92,6 @@ class MultiRobotCamera(Robot):
         """
         for device_name in self.device_keys:
             self.device(device_name).reboot()
-
-    def save_at(self, device_name: str):
-        """
-        Sequentially save all recorders.
-        """
-        if device_name not in self.recorders.keys():
-            logger.error(f"Recorder for {device_name} not found in multi-robot")
-        self.recorders[device_name].save()
             
     def get_state(self, timeout: float = 1.0, is_record: bool = False) -> RobotState:
         raise RuntimeError("get_state is not supported for multi-robot")

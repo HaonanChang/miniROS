@@ -53,6 +53,6 @@ def test_reader(reader: Reader, joint_config: Dict[str, Any]):
 
 if __name__ == "__main__":
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    driver_type = "record3d"
+    driver_type = "feetech"
     reader, joint_config = get_reader(driver_type)
     test_reader(reader, joint_config)

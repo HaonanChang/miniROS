@@ -12,7 +12,7 @@ from loguru import logger
 from mini_ros.utils.time_util import TimeUtil
 from mini_ros.utils.async_util import AsyncUtil
 from mini_ros.common.device import Robot, CameraData
-from mini_ros.wrapper.multi_robot import MultiRobotCamera
+from mini_ros.wrapper.multi_robot import MultiRobotSystem
 from mini_ros.common.state import RobotAction, RobotState
 from mini_ros.utils.rate_limiter import RateLimiterAsync, RateLimiterSync
 
@@ -181,8 +181,8 @@ class FreqTestMultiRobot:
     """
     Test the robot read & write method into multi-thread.
     """
-    def __init__(self, multi_robot: MultiRobotCamera, joint_cmds_traj: Dict[str, list[list[float]]], control_freqs: Dict[str, int], read_freqs: Dict[str, int]):
-        self.multi_robot: MultiRobotCamera = multi_robot
+    def __init__(self, multi_robot: MultiRobotSystem, joint_cmds_traj: Dict[str, list[list[float]]], control_freqs: Dict[str, int], read_freqs: Dict[str, int]):
+        self.multi_robot: MultiRobotSystem = multi_robot
         self.joint_cmds_traj = joint_cmds_traj
         self.control_freqs = control_freqs
         self.read_freqs = read_freqs
@@ -213,8 +213,8 @@ class MultiThreadMultiRobotTest(FreqTestMultiRobot):
     """
     Test the robot read & write method into multi-thread.
     """
-    def __init__(self, multi_robot: MultiRobotCamera, joint_cmds_traj: Dict[str, list[list[float]]], control_freqs: Dict[str, int], read_freqs: Dict[str, int]):
-        self.multi_robot: MultiRobotCamera = multi_robot
+    def __init__(self, multi_robot: MultiRobotSystem, joint_cmds_traj: Dict[str, list[list[float]]], control_freqs: Dict[str, int], read_freqs: Dict[str, int]):
+        self.multi_robot: MultiRobotSystem = multi_robot
         self.joint_cmds_traj = joint_cmds_traj
         self.control_freqs = control_freqs
         self.read_freqs = read_freqs
@@ -297,8 +297,8 @@ class AsyncFreqTestMultiRobot(FreqTestMultiRobot):
     Test the robot read & write method into multi-thread.
     TODO: Finish the async version later.
     """
-    def __init__(self, multi_robot: MultiRobotCamera, joint_cmds_traj: Dict[str, list[list[float]]], control_freqs: Dict[str, int], read_freqs: Dict[str, int]):
-        self.multi_robot: MultiRobotCamera = multi_robot
+    def __init__(self, multi_robot: MultiRobotSystem, joint_cmds_traj: Dict[str, list[list[float]]], control_freqs: Dict[str, int], read_freqs: Dict[str, int]):
+        self.multi_robot: MultiRobotSystem = multi_robot
         self.joint_cmds_traj = joint_cmds_traj
         self.control_freqs = control_freqs
         self.read_freqs = read_freqs

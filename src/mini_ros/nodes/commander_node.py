@@ -1,5 +1,5 @@
 """
-State node.
+Commander node.
 """
 import asyncio
 from typing import Dict, Any, Awaitable, Callable, Type
@@ -21,6 +21,7 @@ class CommanderNode:
     """
     Commander node.
     """
+    
     def __init__(self, commander_cfg: Dict[str, Any] = {}):
         self.commander_cfg = commander_cfg
         self.commander_state = CommanderState.INIT
@@ -65,7 +66,6 @@ class CommanderNode:
             else:
                 # Move to the next state.
                 self.commander_state = CommanderState.ACTIVE
-        await self._process_rate_limiter.unset_busy("CommanderNode_proceed")
 
     async def get_states(self) -> Dict[str, Any]:
         async with self._state_mutex:

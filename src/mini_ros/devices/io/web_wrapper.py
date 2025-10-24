@@ -163,7 +163,7 @@ class CommanderWebWrapper:
 
             try:
                 while True:
-                    await rate_limiter.wait_for_tick("WebDriver_ws_health")
+                    await rate_limiter.wait_for_tick()
                     parsed = (
                         await self.commander.get_health_state()
                     )
@@ -178,7 +178,6 @@ class CommanderWebWrapper:
                             await websocket.send_json(
                                 WebUtil.get_printable_json(parsed)
                             )
-                    await rate_limiter.unset_busy("WebDriver_ws_health")
             except Exception as e:
                 await self.on_ws_error(websocket, e)
 
@@ -198,7 +197,7 @@ class CommanderWebWrapper:
 
             try:
                 while True:
-                    await rate_limiter.wait_for_tick("WebDriver_ws_get_commander_state")
+                    await rate_limiter.wait_for_tick()
 
                     payload = WebUtil.get_printable_json(
                         await self.commander.get_states()
@@ -219,7 +218,6 @@ class CommanderWebWrapper:
                         if websocket.client_state == WebSocketState.CONNECTED:
                             await websocket.send_json(payload)
 
-                    await rate_limiter.unset_busy("WebDriver_ws_get_commander_state")
             except Exception as e:
                 await self.on_ws_error(websocket, e)
 
@@ -237,7 +235,7 @@ class CommanderWebWrapper:
 
             try:
                 while True:
-                    await rate_limiter.wait_for_tick("WebDriver_ws_get_commander_state_simple")
+                    await rate_limiter.wait_for_tick()
 
                     payload = WebUtil.get_printable_json(
                         await self.commander.get_states()
@@ -245,7 +243,6 @@ class CommanderWebWrapper:
                     if websocket.client_state == WebSocketState.CONNECTED:
                         await websocket.send_json(payload)
 
-                    await rate_limiter.unset_busy("WebDriver_ws_get_commander_state_simple")
             except Exception as e:
                 await self.on_ws_error(websocket, e)
 

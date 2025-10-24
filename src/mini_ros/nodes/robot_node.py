@@ -13,7 +13,7 @@ from typing import Dict, Any
 from mini_ros.devices.robots.marvin_robot import MarvinRobot
 from mini_ros.devices.robots.pika_gripper import PikaGripper
 from mini_ros.common.state import CommanderState, RobotNodeState
-from mini_ros.common.device import Robot, Reader
+from mini_ros.common.device import Robot, Device
 from mini_ros.network.network_queue import QueueDealerSender, QueueSubRecver
 from mini_ros.utils.rate_limiter import RateLimiterAsync
 from mini_ros.utils.async_util import AsyncUtil
@@ -27,7 +27,7 @@ class RobotNode:
     As in this framework, the read & write can happend at the same time.
     TODO: Support Half-duplex.
     """
-    def __init__(self, devices: Dict[str, Robot | Reader], node_cfg: Dict[str, Any] = {}):
+    def __init__(self, devices: Dict[str, Robot | Device], node_cfg: Dict[str, Any] = {}):
         self.devices = devices
         # self.state: RDCState = RDCState.INIT
         # Network interface

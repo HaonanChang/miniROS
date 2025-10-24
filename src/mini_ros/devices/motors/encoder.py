@@ -29,12 +29,10 @@ class EncoderReader(MotorReader):
     """
     name = "encoder"
 
-    def __init__(self):
-        pass
+    def __init__(self, motor_configs: List[MotorConfig]):
+        self.motor_configs = motor_configs
 
-    def initialize(self, joint_config: List[MotorConfig]):
-        self.joint_config: List[MotorConfig] = joint_config
-        
+    def initialize(self):
         # Build broadcast encoders and create mapping
         self.broadcast_encoders = {}  # port -> encoder
         self.port_to_joints = {}      # port -> list of joint_names
@@ -43,7 +41,7 @@ class EncoderReader(MotorReader):
         
         self._setup_broadcast_encoders()
         self._setup_joint_mappings()
-        self.num_joints = len(self.joint_config)
+        self.num_joints = len(self.motor_configs)
            
         logger.info(f"GelloEncoder initialized with broadcast encoders")
         logger.info(f"Encoder ports: {list(self.broadcast_encoders.keys())}")
@@ -57,7 +55,7 @@ class EncoderReader(MotorReader):
         # Group joints by port
         port_device_ids = {}  # port -> list of device_ids
         
-        for config in self.joint_config:
+        for config in self.motor_configs:
             port = config.port
             device_id = config.id
             joint_name = config.joint_name
@@ -98,7 +96,7 @@ class EncoderReader(MotorReader):
         
         # Sort joint names by the numerical part (e.g., joint_1, joint_2, ..., joint_10)
         sorted_joint_names = sorted(
-            [joint_config.joint_name for joint_config in self.joint_config],
+            [joint_config.joint_name for joint_config in self.motor_configs],
             key=lambda name: int(name.split('_')[-1])  # Extracts the number from 'joint_#'
         )
 
@@ -158,7 +156,7 @@ class EncoderReader(MotorReader):
                     self.raw_joint_angles[joint_name] = None
         
         # Apply calibration corrections and update model
-        for joint_config in self.joint_config:
+        for joint_config in self.motor_configs:
             joint_name = joint_config.joint_name
             if joint_name in self.raw_joint_angles and self.raw_joint_angles[joint_name] is not None:
                 corrected_read = self.calibrate_read(self.raw_joint_angles[joint_name], joint_config)

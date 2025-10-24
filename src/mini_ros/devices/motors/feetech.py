@@ -7,7 +7,7 @@ import yaml
 import numpy as np
 from typing import Dict, Any, List
 from loguru import logger
-from mini_ros.common.device import Reader, MotorReader, motor_config_from_json
+from mini_ros.common.device import MotorReader, motor_config_from_json
 
 DEBUG_GELLO_FEETCH = True
 
@@ -26,14 +26,13 @@ class FeetechReader(MotorReader):
     """
     name = "feetech"
 
-    def __init__(self):
-        pass
+    def __init__(self, motor_configs: List[Any]):
+        self.motor_configs = motor_configs
 
-    def initialize(self, joint_config: List[Any]):
+    def initialize(self):
         self.ADDR_STS_PRESENT_POSITION  = 56
         self.BAUDRATE = 1000000           # SCServo default baudrate : 1000000
         self.protocol_end = 0
-        self.joint_config = joint_config
         self.feetech_handlers = {}  # port -> (port_handler, packet_handler)
         self.joint_to_qpos_idx = {}
         # For feetech motor, different motors can't use one groupsync
@@ -47,7 +46,7 @@ class FeetechReader(MotorReader):
         self.joint_to_port_motor_info = {}
         self.port_motor_info_to_joint = {}
         
-        for joint_config in self.joint_config:
+        for joint_config in self.motor_configs:
             port = joint_config.port
             device_id = joint_config.id
             motor_type = joint_config.motor_type
@@ -120,7 +119,7 @@ class FeetechReader(MotorReader):
         
         # Sort joint names by the numerical part (e.g., joint_1, joint_2, ..., joint_10)
         sorted_joint_names = sorted(
-            [joint_config.joint_name for joint_config in self.joint_config],
+            [joint_config.joint_name for joint_config in self.motor_configs],
             key=lambda name: int(name.split('_')[-1])  # Extracts the number from 'joint_#'
         )
 
@@ -134,7 +133,7 @@ class FeetechReader(MotorReader):
             logger.info(f"Mapping {joint_name} -> qpos[{joint_name_mapping[joint_name]}]")
 
     def get_gello_info(self):
-        return self.joint_config
+        return self.motor_configs
 
     def get_state(self):
         # Read all Feetech motors using fast GroupSyncRead
@@ -176,7 +175,7 @@ class FeetechReader(MotorReader):
                 self.raw_joint_speeds[joint_name] = speed_degrees_per_second
         
         # Apply calibration corrections and update model
-        for joint_config in self.joint_config:
+        for joint_config in self.motor_configs:
             joint_name = joint_config.joint_name
             if joint_name in self.raw_joint_angles and self.raw_joint_angles[joint_name] is not None:
                 corrected_read = self.calibrate_read(self.raw_joint_angles[joint_name], joint_config)

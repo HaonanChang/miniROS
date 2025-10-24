@@ -6,6 +6,7 @@ import enum
 import queue
 from dataclasses import dataclass
 import pickle
+from mini_ros.common.device import Recorder
 from mini_ros.common.state import RobotAction, RobotState
 from typing import Dict, Any, Union
 import threading
@@ -26,10 +27,11 @@ class RecorderConfig:
     fps: int
     max_episode_length: int  # in seconds
     data_root_dir: str
+    save_at_stop: bool = True
     record_style: RecordStyle = RecordStyle.WORLD_ENGINE_RDC
 
 
-class EpisodeRecorder:
+class EpisodeRecorder(Recorder):
     """
     Episode recorder.
     Caches the data for a whole episode, and save it to the given path after the episode ends.
@@ -46,6 +48,7 @@ class EpisodeRecorder:
         self.io_mutex = threading.Lock()
         self.is_active_event = threading.Event()
         self.data_folder = None
+        self.save_at_stop = config.save_at_stop
 
     def is_active(self) -> bool:
         """
@@ -53,7 +56,16 @@ class EpisodeRecorder:
         """
         return self.is_active_event.is_set()
 
-    def start(self, episode_name: str):
+    def start(self):
+        pass
+
+    def stop(self):
+        pass
+
+    def pause(self):
+        pass
+
+    def start_record(self, episode_name: str):
         """
         NOTE: Start is a blocking call.
         """       
@@ -67,9 +79,15 @@ class EpisodeRecorder:
             self.episode_name = episode_name
         self.is_active_event.set()
 
-    def stop(self):
+    def stop_record(self):
+        """
+        NOTE: Stop recording is a blocking call.
+        """
         logger.info(f"Stopping recorder: {self.name}")
         self.is_active_event.clear()
+        # Call save method
+        if self.save_at_stop:
+            self.save()
 
     def put(self, data: Any, key: str):
         """
