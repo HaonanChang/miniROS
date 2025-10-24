@@ -12,7 +12,7 @@ class MultiRobotCamera(Robot):
     """
     name: str = "multi_robot"
 
-    def __init__(self, robots: Dict[str, Robot], cameras: Dict[str, Camera], recorders: Dict[str, Recorder]):
+    def __init__(self, robots: Dict[str, Robot] = {}, cameras: Dict[str, Camera] = {}, recorders: Dict[str, Recorder] = {}):
         """
         """
         self.robots = robots
@@ -34,49 +34,57 @@ class MultiRobotCamera(Robot):
         """
         Sequentially initialize all robots.
         """
-        for robot_name in self.robots.keys():
-            self.robots[robot_name].initialize()
-        for camera_name in self.cameras.keys():
-            self.cameras[camera_name].initialize()
+        for device_name in self.device_keys:
+            self.device(device_name).initialize()
 
-    def start(self, episode_name: str):
+    def start(self):
         """
         NOTE: Start is a blocking call.
         Sequentially start all robots.
         """
-        for robot_name in self.robots.keys():
-            self.robots[robot_name].start(episode_name)
-        for camera_name in self.cameras.keys():
-            self.cameras[camera_name].start(episode_name)
+        for device_name in self.device_keys:
+            self.device(device_name).start()
 
     def stop(self):
         """
         Sequentially stop all robots.
         """
-        for robot_name in self.robots.keys():
-            self.robots[robot_name].stop()
-        for camera_name in self.cameras.keys():
-            self.cameras[camera_name].stop()
+        for device_name in self.device_keys:
+            self.device(device_name).stop()
             
     def pause(self):
         """
         Sequentially pause all robots.
         """
-        for robot_name in self.robots.keys():
-            self.robots[robot_name].pause()
-        for camera_name in self.cameras.keys():
-            self.cameras[camera_name].pause()
+        for device_name in self.device_keys:
+            self.device(device_name).pause()
+    
+    def start_record_at(self, device_name: str, episode_name: str):
+        """
+        Sequentially start recording a specific device.
+        """
+        if device_name not in self.device_keys:
+            logger.error(f"Device {device_name} not found in multi-robot")
+            raise ValueError(f"Device {device_name} not found in multi-robot")
+        self.device(device_name).start_record(episode_name)
+
+    def stop_record_at(self, device_name: str):
+        """
+        Sequentially stop recording a specific device.
+        """
+        if device_name not in self.device_keys:
+            logger.error(f"Device {device_name} not found in multi-robot")
+            raise ValueError(f"Device {device_name} not found in multi-robot")
+        self.device(device_name).stop_record()
 
     def reboot(self):
         """
         Sequentially reboot all robots.
         """
-        for robot_name in self.robots.keys():
-            self.robots[robot_name].reboot()
-        for camera_name in self.cameras.keys():
-            self.cameras[camera_name].reboot()
+        for device_name in self.device_keys:
+            self.device(device_name).reboot()
 
-    def save(self, device_name: str):
+    def save_at(self, device_name: str):
         """
         Sequentially save all recorders.
         """
@@ -99,14 +107,14 @@ class MultiRobotCamera(Robot):
             raise ValueError(f"Robot {robot_name} not found in multi-robot")
         return self.robots[robot_name].apply_action(action, is_record)
 
-    def get_state_from(self, robot_name: str, timeout: float = 1.0, is_record: bool = False) -> RobotState:
+    def get_state_from(self, device_name: str, timeout: float = 1.0, is_record: bool = False) -> RobotState:
         """
-        Get state from a specific robot.
+        Get state from a specific device.
         """
-        if robot_name not in self.robots.keys():
-            logger.error(f"Robot {robot_name} not found in multi-robot")
-            raise ValueError(f"Robot {robot_name} not found in multi-robot")
-        return self.robots[robot_name].get_state(timeout, is_record)
+        if device_name not in self.device_keys:
+            logger.error(f"Device {device_name} not found in multi-robot")
+            raise ValueError(f"Device {device_name} not found in multi-robot")
+        return self.device(device_name).get_state(timeout=timeout, is_record=is_record)
 
     def is_active(self) -> bool:
         action_flag = True
@@ -116,6 +124,15 @@ class MultiRobotCamera(Robot):
                 logger.warning(f"Robot {robot_name} is not active")
                 break
         return action_flag
+    
+    def is_alive(self) -> bool:
+        alive_flag = True
+        for robot_name in self.robots.keys():
+            if not self.robots[robot_name].is_alive():
+                alive_flag = False
+                logger.warning(f"Robot {robot_name} is not alive")
+                break
+        return alive_flag
     
     @property
     def num_dof(self) -> int:
@@ -139,3 +156,29 @@ class MultiRobotCamera(Robot):
     @property
     def max_read_freq_at(self, robot_name: str) -> int:
         return self.robots[robot_name].max_read_freq
+
+    # Idle methods
+    def _initialize_robot(self):
+        raise RuntimeError("initialize_robot is not supported for multi-robot")
+
+    def _start_robot(self):
+        raise RuntimeError("start_robot is not supported for multi-robot")
+
+    def _pause_robot(self):
+        raise RuntimeError("pause_robot is not supported for multi-robot")
+
+    def _stop_robot(self):
+        raise RuntimeError("stop_robot is not supported for multi-robot")
+
+    @property
+    def device_keys(self) -> List[str]:
+        return list(self.robots.keys()) + list(self.cameras.keys())
+
+    def device(self, device_name: str) -> Robot | Camera:
+        if device_name in self.robots.keys():
+            return self.robots[device_name]
+        elif device_name in self.cameras.keys():
+            return self.cameras[device_name]
+        else:
+            logger.error(f"Device {device_name} not found in multi-robot")
+            return None

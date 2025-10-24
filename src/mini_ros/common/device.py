@@ -3,6 +3,8 @@ from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 import numpy as np
 from mini_ros.common.state import RobotState, RobotAction, CameraData
+import threading
+from loguru import logger
 
 
 ############################## Device Base Class ##############################
@@ -13,6 +15,30 @@ class Device(ABC):
     
     def __init__(self, name: str):
         self.name = name
+
+    @abstractmethod
+    def initialize(self):
+        raise NotImplementedError("initialize method is not implemented")
+
+    @abstractmethod
+    def start(self):
+        raise NotImplementedError("start method is not implemented")
+
+    @abstractmethod
+    def stop(self):
+        raise NotImplementedError("stop method is not implemented")
+        
+    @abstractmethod
+    def pause(self):
+        raise NotImplementedError("pause method is not implemented")
+
+    @abstractmethod
+    def start_record(self, episode_name: str):
+        raise NotImplementedError("start_record method is not implemented")
+
+    @abstractmethod
+    def stop_record(self):
+        raise NotImplementedError("stop_record method is not implemented")
 
 
 class Reader(ABC):
@@ -78,7 +104,7 @@ class Recorder:
         raise NotImplementedError("is_active method is not implemented")
 
 
-class Robot(ABC):
+class Robot(Device):
     """
     Base class for all robots.
     """
@@ -87,15 +113,92 @@ class Robot(ABC):
 
     def __init__(self):
         self.recorder: Recorder = None
+        # Active: Can be controlled
+        self._active_event = threading.Event()
+        # Connect: Connected to the robot
+        self._connect_event = threading.Event()
 
+    ###################### Interface Methods ######################
     def bind_recorder(self, recorder: Recorder):
         self.recorder = recorder
 
-    ###################### Required Methods ######################
-    @abstractmethod
     def initialize(self):
-        pass
+        """
+        Initialize the robot.
+        """
+        flag = self._initialize_robot()
+        if not flag:
+            logger.error(f"Failed to initialize robot: {self.name}")
+            return False
+        self._connect_event.set()
+        return True
 
+    def start(self):
+        """
+        NOTE: Start is a blocking call.
+        """
+        if not self.is_alive():
+            # Can't be double started
+            logger.warning(f"{self.name} is not connected, can't be started")
+            return
+        self._start_robot()
+        # Set active event
+        self._active_event.set()
+
+    def start_record(self, episode_name: str):
+        """
+        NOTE: Start recording is a blocking call.
+        Start recording the robot.
+        """
+        if self.recorder is not None:
+            self.recorder.start(episode_name)
+        else:
+            logger.warning(f"Recorder is not bound to {self.name}, can't start recording")
+    
+    def stop_record(self):
+        """
+        NOTE: Stop recording is a blocking call.
+        Stop recording the robot.
+        """
+        if self.recorder is not None:
+            logger.info(f"Saving recorder: {self.name}")
+            self.recorder.save()
+        else:
+            logger.warning(f"Recorder is not bound to {self.name}, can't stop recording")
+            
+    def stop(self):
+        """
+        NOTE: Stop is a blocking call.
+        """
+        if not self.is_alive():
+            # Can't be double stopped
+            logger.warning(f"{self.name} is not connected, can't be stopped")
+            return
+        self._active_event.clear()
+        self._connect_event.clear()
+        self._stop_robot()
+        if self.recorder is not None:
+            self.recorder.stop()
+
+    def pause(self):
+        """
+        NOTE: Pause is a blocking call.
+        """
+        if not self.is_active():
+            # Can't be double paused
+            logger.warning(f"{self.name} is not active, can't be paused")
+            return
+        self._active_event.clear()
+        logger.info(f"Pausing {self.name}: Active: {self.is_active()}, Alive: {self.is_alive()}")
+        self._pause_robot()
+
+    def is_active(self) -> bool:
+        return self._active_event.is_set()
+    
+    def is_alive(self) -> bool:
+        return self._connect_event.is_set()
+
+    ###################### Required Methods ######################
     @abstractmethod
     def get_state(self, timeout: float = 1.0, is_record: bool = False) -> RobotState:
         """
@@ -106,35 +209,31 @@ class Robot(ABC):
         Returns:
             RobotState: The state of the robot
         """
-        pass
+        raise NotImplementedError("get_state method is not implemented")
 
     @abstractmethod
     def apply_action(self, action: RobotAction, is_record: bool = False):
-        pass
+        raise NotImplementedError("apply_action method is not implemented")
 
     @abstractmethod
-    def start(self, episode_name: str):
-        pass
+    def _initialize_robot(self):
+        raise NotImplementedError("initialize_robot method is not implemented")
 
     @abstractmethod
-    def stop(self):
-        pass
+    def _start_robot(self):
+        raise NotImplementedError("start_robot method is not implemented")
+
+    @abstractmethod
+    def _pause_robot(self):
+        raise NotImplementedError("pause_robot method is not implemented")
+
+    @abstractmethod
+    def _stop_robot(self):
+        raise NotImplementedError("stop_robot method is not implemented")
 
     @abstractmethod
     def reboot(self):
-        pass
-
-    def is_active(self) -> bool:
-        """
-        Check if the robot is active.
-        """
-        raise NotImplementedError("is_active method is not implemented")
-
-    def is_alive(self) -> bool:
-        """
-        Check if the robot is alive.
-        """
-        raise NotImplementedError("is_alive method is not implemented")
+        raise NotImplementedError("reboot method is not implemented")
 
     @property
     def num_dof(self) -> int:
@@ -190,7 +289,7 @@ class Robot(ABC):
         return True
 
 
-class Camera:
+class Camera(Device):
     """
     Base class for all cameras.
     """
@@ -198,44 +297,52 @@ class Camera:
 
     @abstractmethod
     def initialize(self):
-        pass
+        raise NotImplementedError("initialize method is not implemented")
 
     @abstractmethod
     def bind_recorder(self, recorder: Recorder):
-        pass
+        raise NotImplementedError("bind_recorder method is not implemented")
 
     @abstractmethod
-    def start(self, episode_name: str):
-        pass
+    def start(self):
+        raise NotImplementedError("start method is not implemented")
 
     @abstractmethod
     def stop(self):
-        pass
+        raise NotImplementedError("stop method is not implemented")
+
+    @abstractmethod
+    def start_record(self, episode_name: str):
+        raise NotImplementedError("start_record method is not implemented")
+
+    @abstractmethod
+    def stop_record(self):
+        raise NotImplementedError("stop_record method is not implemented")
 
     @abstractmethod
     def pause(self):
-        pass
+        raise NotImplementedError("pause method is not implemented")
 
     @abstractmethod
     def get_frame(self) -> Any:
         """
         Polling from device
         """
-        pass
+        raise NotImplementedError("get_frame method is not implemented")
 
     @abstractmethod
     def process_frame(self, frame: Any) -> CameraData:
         """
         Process the frame from device and return the camera data
         """
-        pass
+        raise NotImplementedError("process_frame method is not implemented")
 
     @abstractmethod
     def save_data(self, path: Optional[str] = None):
         """
         Camera is IO-heavy, so we can choose to save the data locally on fly.
         """
-        pass
+        raise NotImplementedError("save_data method is not implemented")
 
     @abstractmethod
     def is_active(self) -> bool:

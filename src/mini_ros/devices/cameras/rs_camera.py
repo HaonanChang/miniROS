@@ -9,6 +9,7 @@ from loguru import logger
 from mini_ros.utils.time_util import TimeUtil
 from mini_ros.utils.rate_limiter import RateLimiterSync
 from queue import Queue
+from mini_ros.common.device import Recorder
 import cv2
 import threading
 import time
@@ -49,6 +50,8 @@ class RSCamera(Camera):
     name: str = "rs_camera"
     """
     A class to represent a Intel Realsense camera.
+    [TODO]: Now camera itself has a recorder inside. 
+    We want to seperate the recorder from the camera later.
     """
     def __init__(self, driver_config):
         #  Parse driver config
@@ -70,6 +73,7 @@ class RSCamera(Camera):
         self.resize_height = driver_config.resize_height
         self.data_upload_dir = driver_config.data_upload_dir
         self.read_rate_limiter = RateLimiterSync(self.fps)
+        self.episode_name = None
         # Saver & Reader rate limiter should be the same
         self.auto_save_rate_limiter = RateLimiterSync(self.fps)
         self._is_auto_save = driver_config.is_auto_save
@@ -80,6 +84,10 @@ class RSCamera(Camera):
         self._connect_event = threading.Event()
         # Handle mutex
         self._io_mutex = threading.Lock()
+
+    def bind_recorder(self, recorder: Recorder):
+        #TODO: To implement in the future
+        pass
 
     def is_active(self) -> bool:
         return self._active_event.is_set()
@@ -127,18 +135,40 @@ class RSCamera(Camera):
         # Start read loop
         self._read_thread = threading.Thread(target=self.read_loop)
         self._read_thread.start()
-        if self._is_auto_save:
-            self._auto_save_thread = threading.Thread(target=self.auto_save_loop)
-            self._auto_save_thread.start()
+        # if self._is_auto_save:
+        #     self._auto_save_thread = threading.Thread(target=self.auto_save_loop)
+        #     self._auto_save_thread.start()
         time.sleep(0.25)
     
+    def get_state(self, timeout: float = 1.0, is_record: bool = False) -> CameraData:
+        """
+        Get the state of the camera.
+        """
+        if is_record:
+            data_frame = self.save_data()
+            return data_frame
+        else:
+            if not self._data_buffer.empty():
+                return self._data_buffer.get()
+            else:
+                return None
+
     def get_frame(self) -> np.ndarray:
         frames = self._rs_pipeline.wait_for_frames()
         return frames
 
-    def start(self, episode_name: str):
+    def start(self):
+        # Do nothing
+        pass
+
+    def pause(self):
+        # Do nothing
+        pass
+
+    def start_record(self, episode_name: str):
         """
-        NOTE: Start is a blocking call.
+        NOTE: Start recording is a blocking call.
+        Start recording the camera.
         """
         if not self.is_alive():
             # Can't be double started
@@ -151,14 +181,19 @@ class RSCamera(Camera):
 
         # Open file handler for data
         tmp_dir = f"{self.data_upload_dir}/.tmp"
-        self.tmp_file = f"{tmp_dir}/{LangUtil.make_uid()}.jsonl"
         os.makedirs(tmp_dir, exist_ok=True)
+        self.tmp_file = f"{tmp_dir}/{LangUtil.make_uid()}.jsonl"
         with self._io_mutex:
             self._fh = open(self.tmp_file, "w")
+            self.episode_name = episode_name
         self._active_event.set()
         logger.info(f"Started camera: {self.name}")
         
-    def pause(self):
+    def stop_record(self):
+        """
+        NOTE: Stop recording is a blocking call.
+        Stop recording the camera.
+        """
         if not self.is_active():
             # Can't be double paused
             return
@@ -168,6 +203,13 @@ class RSCamera(Camera):
             # Clear the buffer
             self._fh.close()
             self._fh = None
+            # Move the file to the episode folder
+            if self.episode_name is not None:
+                episode_folder = f"{self.data_upload_dir}/{self.episode_name}"
+                os.makedirs(episode_folder, exist_ok=True)
+                os.rename(self.tmp_file, f"{episode_folder}/{self.name}.jsonl")
+                logger.info(f"Moved {self.tmp_file} to {episode_folder}/{self.name}.jsonl")
+                self.episode_name = None
         
     def stop(self):
         if not self.is_alive():
@@ -184,8 +226,8 @@ class RSCamera(Camera):
 
         self._rs_pipeline.stop()
         self._read_thread.join()
-        if self._is_auto_save:
-            self._auto_save_thread.join()
+        # if self._is_auto_save:
+        #     self._auto_save_thread.join()
 
     def read_loop(self):
         while self.is_alive():
@@ -275,8 +317,9 @@ class RSCamera(Camera):
                 logger.error("File handler is not opened, can't save data")
                 return
             self._fh.write(payload + "\n")
+        return data_frame
     
-    def auto_save_loop(self):
-        while self.is_alive():
-            self.auto_save_rate_limiter.wait_for_tick()
-            self.save_data()
+    # def auto_save_loop(self):
+    #     while self.is_alive():
+    #         self.auto_save_rate_limiter.wait_for_tick()
+    #         self.save_data()

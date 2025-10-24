@@ -83,11 +83,10 @@ class PikaGripper(Robot):
         self._active_event = threading.Event()
         self._connect_event = threading.Event()
 
-    def initialize(self):
-        if self._connect_event.is_set():
-            # Can't be double initialized
-            logger.warning("Pika gripper is already initialized, can't be initialized again")
-            return
+    def _initialize_robot(self):
+        """
+        Initialize the robot.
+        """
         # Setup communication
         self.serial = serial.Serial(
             port=self.port,
@@ -103,56 +102,28 @@ class PikaGripper(Robot):
         self._read_thread = threading.Thread(target=self._read_loop)
         self._read_thread.start()
         time.sleep(0.25)
+        return True
     
-    def start(self, episode_name: str) -> None:
+    def _start_robot(self):
         """
         NOTE: Start is a blocking call.
         """
-        if not self.is_alive():
-            # Can't be double started
-            logger.warning("Pika gripper is not connected, can't be started")
-            return
         self._send_command(PIKACommandType.ENABLE.value)
-        self._active_event.set()
         # Clear prev buffer
         self._buffer = ""
-        if self.recorder is not None:
-            self.recorder.start(episode_name)
 
-    def stop(self) -> None:
+    def _stop_robot(self):
         """
         NOTE: Stop is a blocking call.
         """
-        if not self.is_alive():
-            # Can't be double stopped
-            logger.warning("Pika gripper is already stopped, can't be stopped again")
-            return
-        self._active_event.clear()
-        self._connect_event.clear()
+        # close the read thread
         self._read_thread.join()
         self._send_command(PIKACommandType.DISABLE.value)
         self.serial.close()
-        if self.recorder is not None:
-            self.recorder.stop()
-
-    def pause(self) -> None:
-        """
-        NOTE: Pause is a blocking call.
-        """
-        if not self.is_active():
-            # Can't be double paused
-            logger.warning("Pika gripper is not active, can't be paused")
-            return
-        self._active_event.clear()
-        logger.info(f"Pausing Pika gripper: {self.name}: Active: {self.is_active()}, Alive: {self.is_alive()}")
-        if self.recorder is not None:
-            self.recorder.save()
-
-    def is_active(self) -> bool:
-        return self._active_event.is_set()
-        
-    def is_alive(self) -> bool:
-        return self._connect_event.is_set()
+    
+    def _pause_robot(self):
+        # Do nothing
+        pass
 
     def _send_command(self, command_type: PIKACommandType, value: float = 0.0) -> bool:
         try:

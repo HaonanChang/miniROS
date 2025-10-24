@@ -72,27 +72,7 @@ class MarvinRobot(Robot):
         self.is_new_version = config.is_new_version
         self.init_timeout = config.init_timeout
         self.mode = "init"
-        self.recorder: Recorder = None
-        # Active: Can be controlled
-        self._active_event = threading.Event()
-        # Connect: Connected to the robot
-        self._connect_event = threading.Event()
-
-    def initialize(self):
-        self.robot = Marvin_Robot()
-        self.robot.connect(self.port)
-        start_time = TimeUtil.now()
-        while (TimeUtil.now() - start_time).total_seconds() < self.init_timeout:
-            state = self.get_state()
-            if state is not None and self.is_state_valid(state):
-                break
-            time.sleep(0.1)
-        if state is None or not self.is_state_valid(state):
-            logger.error(f"Failed to initialize Marvin robot in {self.init_timeout} seconds")
-            return False
-        logger.info(f"Initialized Marvin robot in {TimeUtil.get_elapsed_time_ms(start_time)} ms")
-        self._connect_event.set()
-        return True
+        super().__init__()
 
     def is_state_valid(self, state: RobotState) -> bool:
         """
@@ -100,12 +80,6 @@ class MarvinRobot(Robot):
         If not connected, the marvin's joint positions should be all zeros.
         """
         return np.all(state.joint_positions != 0)
-
-    def is_active(self) -> bool:
-        return self._active_event.is_set()
-    
-    def is_alive(self) -> bool:
-        return self._connect_event.is_set()
 
     def get_state(self, timeout: float = 1.0, is_record: bool = False) -> RobotState:
         """
@@ -158,21 +132,29 @@ class MarvinRobot(Robot):
             self.recorder.put(action, "robot_action")
         return action
 
-    def start(self, episode_name: str):
+    def _initialize_robot(self):
         """
-        NOTE: Start is a blocking call.
+        Initialize the robot.
         """
-        if not self.is_alive():
-            # Can't be double started
-            logger.warning("Marvin robot is not connected, can't be started")
-            return
-        self._launch_robot()
-        if self.recorder is not None:
-            self.recorder.start(episode_name)
-        # Set active event
-        self._active_event.set()
+        self.robot = Marvin_Robot()
+        self.robot.connect(self.port)
+        start_time = TimeUtil.now()
+        while (TimeUtil.now() - start_time).total_seconds() < self.init_timeout:
+            state = self.get_state()
+            if state is not None and self.is_state_valid(state):
+                break
+            time.sleep(0.1)
+        if state is None or not self.is_state_valid(state):
+            logger.error(f"Failed to initialize Marvin robot in {self.init_timeout} seconds")
+            return False
+        logger.info(f"Initialized Marvin robot in {TimeUtil.get_elapsed_time_ms(start_time)} ms")
+        self._connect_event.set()
+        return True
 
-    def _launch_robot(self):
+    def _start_robot(self):
+        """
+        Open the control of robot.
+        """
         if self.mute_skd_log:
             IOUtil.mute()
         # Clear error
@@ -209,37 +191,11 @@ class MarvinRobot(Robot):
         time.sleep(0.25)
         if self.mute_skd_log:
             IOUtil.restore()
-        
-    def stop(self):
-        """
-        NOTE: Stop is a blocking call.
-        """
-        if not self.is_alive():
-            # Can't be double stopped
-            logger.warning("Marvin robot is not connected, can't be stopped")
-            return
-        self._active_event.clear()
-        self._connect_event.clear()
-        self._pause_robot()
-        self.robot.release_robot()
-        if self.recorder is not None:
-            self.recorder.stop()
-
-    def pause(self):
-        """
-        NOTE: Pause is a blocking call.
-        """
-        if not self.is_active():
-            # Can't be double paused
-            logger.warning("Marvin robot is not active, can't be paused")
-            return
-        self._active_event.clear()
-        logger.info(f"Pausing Marvin robot: {self.name}: Active: {self.is_active()}, Alive: {self.is_alive()}")
-        self._pause_robot()
-        if self.recorder is not None:
-            self.recorder.save()
-
+    
     def _pause_robot(self):
+        """
+        Pause the control of robot.
+        """
         if self.mute_skd_log:
             IOUtil.mute()
         # Set robot to stop state
@@ -252,10 +208,17 @@ class MarvinRobot(Robot):
         time.sleep(0.25)
         self.mode = "init"  # Set mode back to init after pause
 
+    def _stop_robot(self):
+        """
+        Stop the control of robot.
+        """
+        self._pause_robot()
+        self.robot.release_robot()
+
     def reboot(self):
         logger.info("Rebooting Marvin robot...")
         self._pause_robot()
-        self._launch_robot()
+        self._start_robot()
         # Set active event
         self._active_event.set()
         logger.info("Marvin robot rebooted")

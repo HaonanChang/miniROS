@@ -58,7 +58,7 @@ class EpisodeRecorder:
         NOTE: Start is a blocking call.
         """       
         if self.is_active():
-            logger.warning("Recorder is already active, can't start again")
+            logger.warning("Recorder is already active, can't start again. Close it first.")
             return
         logger.info(f"Starting recorder: {self.name}")
         # Clear the data buffers
@@ -78,7 +78,7 @@ class EpisodeRecorder:
         Because it will be called in other time-sensitive threads.
         """
         if not self.is_active():
-            logger.warning("Recorder is not active, can't put data")
+            # logger.warning(f"Recorder {self.name} is not active, can't put data")
             return
         else:
             # logger.info(f"Putting data to recorder: {self.name}, key: {key}")

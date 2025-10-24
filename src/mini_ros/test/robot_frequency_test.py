@@ -76,9 +76,9 @@ def draw_compare_fig(control_log: list[RobotAction], read_log: list[RobotState],
             
             for i in range(num_joints):
                 ax = axes[i]
-                ax.plot(control_timestamp, control_joint_cmds[:, i], label=f"Control Joint {i}")
+                ax.scatter(control_timestamp, control_joint_cmds[:, i], s=0.1, label=f"Control Joint {i}")
                 if read_joint_positions.ndim == 2 and read_joint_positions.shape[1] > i:
-                    ax.plot(read_timestamp, read_joint_positions[:, i], label=f"Read Joint {i}")
+                    ax.scatter(read_timestamp, read_joint_positions[:, i], s=0.1, label=f"Read Joint {i}")
                 ax.set_title(f"Joint {i}")
                 ax.legend()
                 ax.grid(True)
@@ -93,8 +93,8 @@ def draw_compare_fig(control_log: list[RobotAction], read_log: list[RobotState],
         else:
             # 1D case: single subplot
             plt.figure(figsize=(10, 5))
-            plt.plot(control_timestamp, control_joint_cmds, label="Control")
-            plt.plot(read_timestamp, read_joint_positions, label="Read")
+            plt.scatter(control_timestamp, control_joint_cmds, s=0.1, label="Control")
+            plt.scatter(read_timestamp, read_joint_positions, s=0.1, label="Read")
             plt.legend()
             plt.grid(True)
         
@@ -132,9 +132,41 @@ def draw_compare_fig(control_log: list[RobotAction], read_log: list[RobotState],
             plt.savefig(f"{title}_{compare_type}.png")
         else:
             plt.savefig(f"compare_{compare_type}.png")
+        logger.info(f"Saved figure to {title}_{compare_type}.png")
+        plt.close()
     else:
         raise ValueError(f"Invalid compare type: {compare_type}")
 
+
+def draw_freq_analysis_fig(control_log: list[RobotAction], read_log: list[RobotState], title="", y_margin=0.0) -> None:
+    """
+    Generate the frequency analysis figure of the control and read log.
+    """
+    control_timestamp = [action.timestamp for action in control_log]
+    read_timestamp = [state.timestamp for state in read_log]
+    # Align timestamp
+    time_0 = control_timestamp[0]
+    control_timestamp = [timestamp - time_0 for timestamp in control_timestamp]
+    read_timestamp = [timestamp - time_0 for timestamp in read_timestamp]
+    # Compute delta time
+    control_delta_time = np.diff(control_timestamp)
+    read_delta_time = np.diff(read_timestamp)
+
+    # Remove outliers
+    control_delta_time[control_delta_time > 0.2] = 0
+    read_delta_time[read_delta_time > 0.2] = 0
+    # Plot the frequency analysis figure
+    plt.figure(figsize=(10, 5))
+    plt.scatter(control_timestamp[1:], control_delta_time, s=0.1, label="Control")
+    plt.scatter(read_timestamp[1:], read_delta_time, s=0.1, label="Read")
+    plt.legend()
+    plt.grid(True)
+    plt.xlabel("Timestamp (s)")
+    plt.ylabel("Delta Time (s)")
+    plt.title("Frequency Analysis")
+    plt.savefig(f"{title}_freq_analysis.png")
+    logger.info(f"Saved figure to {title}_freq_analysis.png")
+    plt.close()
 
 ################################### Mutli robot test ###################################
 class FreqTestMultiRobot:
@@ -162,7 +194,7 @@ class FreqTestMultiRobot:
     def generate_compare_fig(self, compare_type: str = "joint_cmds", title="", y_margin=0.0) -> None:
         for robot_name in self.multi_robot.robots.keys():
             draw_compare_fig(control_log=self._control_log[robot_name], read_log=self._read_log[robot_name], compare_type=compare_type, title=f"{title}_{robot_name}", y_margin=y_margin)
-
+            draw_freq_analysis_fig(control_log=self._control_log[robot_name], read_log=self._read_log[robot_name], title=f"{title}_{robot_name}_freq_analysis")
 
 class MultiThreadFreqTestMultiRobot(FreqTestMultiRobot):
     """
@@ -173,20 +205,21 @@ class MultiThreadFreqTestMultiRobot(FreqTestMultiRobot):
         self.joint_cmds_traj = joint_cmds_traj
         self.control_freqs = control_freqs
         self.read_freqs = read_freqs
+        self.stop_event = threading.Event()
+        self.stop_event.clear()
 
         # Log
         self._control_log: Dict[str, list[RobotAction]] = {robot_name: [] for robot_name in self.multi_robot.robots.keys()}
-        self._read_log: Dict[str, list[RobotState]] = {robot_name: [] for robot_name in self.multi_robot.robots.keys()}
+        self._read_log: Dict[str, list[RobotState]] = {robot_name: [] for robot_name in self.multi_robot.device_keys}
 
     def start(self):
         self.control_threads = []
         self.read_threads = []
-        print(self.multi_robot.robots.keys())
-        for robot_name in self.multi_robot.robots.keys():
-            logger.info(f"Starting control thread for robot {robot_name}. Active: {self.multi_robot.is_active()}")
-            self.control_threads.append(threading.Thread(target=self.control_loop, args=(robot_name,)))
-            self.read_threads.append(threading.Thread(target=self.read_loop, args=(robot_name,)))
-            self.control_threads[-1].start()
+        for device_name in self.multi_robot.device_keys:
+            if isinstance(self.multi_robot.device(device_name), Robot):
+                self.control_threads.append(threading.Thread(target=self.control_loop, args=(device_name,)))
+                self.control_threads[-1].start()
+            self.read_threads.append(threading.Thread(target=self.read_loop, args=(device_name,)))
             self.read_threads[-1].start()
 
     def join(self):
@@ -195,29 +228,55 @@ class MultiThreadFreqTestMultiRobot(FreqTestMultiRobot):
             read_thread.join()
 
     def control_loop(self, robot_name: str) -> None:
+        """
+        Loop control the data.
+        """
         control_rate_limiter = RateLimiterSync(self.control_freqs[robot_name])
+        logger.info(f"Starting control thread for robot {robot_name}. Active: {self.multi_robot.is_active()}")
         for joint_cmds in self.joint_cmds_traj[robot_name]:
-            control_rate_limiter.wait_for_tick()
-
-            robot_action = RobotAction(joint_cmds=joint_cmds)
-            robot_action = self.multi_robot.apply_action_to(robot_name, robot_action, is_record=True)
-            self._control_log[robot_name].append(robot_action)
-        # Set stop
-        self.multi_robot.pause()
-        logger.info(f"Quitting control loop for robot {robot_name}.")
-
-    def read_loop(self, robot_name: str) -> None:
-        read_rate_limiter = RateLimiterSync(self.read_freqs[robot_name])
-        logger.info(f"Starting read loop for robot {robot_name}. Active: {self.multi_robot.is_active()}")
-        while self.multi_robot.is_active():
             try:
-                read_rate_limiter.wait_for_tick()
-                state = self.multi_robot.get_state_from(robot_name, is_record=True)
-                self._read_log[robot_name].append(state)
+                control_rate_limiter.wait_for_tick()
+                robot_action = RobotAction(joint_cmds=joint_cmds)
+                robot_action = self.multi_robot.apply_action_to(robot_name, robot_action, is_record=True)
+                self._control_log[robot_name].append(robot_action)
             except Exception as e:
-                logger.error(f"Error in read loop for robot {robot_name}: {e}")
+                logger.error(f"Error in control loop for robot {robot_name}: {e}")
                 break
-        logger.info(f"Quitting read loop for robot {robot_name}.")
+        logger.info(f"Quitting control loop for robot {robot_name}.")
+        self.stop_event.set()
+
+    def read_loop(self, device_name: str, episode_length: int = 4) -> None:
+        """
+        Reading loop. Switch to next episode after episode_length seconds.
+        """
+        read_rate_limiter = RateLimiterSync(self.read_freqs[device_name])
+        logger.info(f"Starting read loop for robot {device_name}. Active: {self.multi_robot.is_active()}")
+        episode_idx = 0
+        while True:
+            if self.stop_event.is_set() or not self.multi_robot.is_alive():
+                break
+
+            try:
+                read_rate_limiter.reset()
+                self.multi_robot.start_record_at(device_name=device_name, episode_name=f"e_{episode_idx:06d}")
+                episode_idx += 1
+            except Exception as e:
+                logger.error(f"Error in start record for {device_name}: {e}")
+                break
+            start_time = TimeUtil.now()
+            while (TimeUtil.now() - start_time).total_seconds() < episode_length:
+                try:
+                    read_rate_limiter.wait_for_tick()
+                    state = self.multi_robot.get_state_from(device_name, is_record=True)
+                    self._read_log[device_name].append(state)
+                except Exception as e:
+                    logger.error(f"Error in read loop for {device_name}: {type(e).__name__}: {e}")
+                    break
+            self.multi_robot.stop_record_at(device_name=device_name)
+            logger.info(f"Start waiting for next episode {device_name}")
+            time.sleep(2)
+            logger.info(f"Switch to next episode at {episode_idx:06d}")
+        logger.info(f"Quitting read loop for robot {device_name}.")
 
 
 class AsyncFreqTestMultiRobot(FreqTestMultiRobot):

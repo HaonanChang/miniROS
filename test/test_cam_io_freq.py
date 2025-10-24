@@ -44,17 +44,19 @@ if __name__ == "__main__":
         os.makedirs(goal_folder, exist_ok=True)
         for camera in cameras:
             camera.start()
+            camera.start_record(episode_name=f"e_{iter:06d}")
             print(f"Current file: {camera.tmp_file}")
         for i in range(5):
             print(f"{iter}: Writing data {i}")
             time.sleep(1)
         for camera in cameras:
+            camera.stop_record()
             camera.pause()
         time.sleep(1)
         
-        # Move tmp files to goal folder
-        for camera in cameras:
-            move_tmp_file(goal_folder, camera)
+        # # Move tmp files to goal folder
+        # for camera in cameras:
+        #     move_tmp_file(goal_folder, camera)
     # Stop all cameras
     for camera in cameras:
         camera.stop()

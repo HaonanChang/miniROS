@@ -55,6 +55,9 @@ class RateLimiterAsync:
         else:
             self.tick_start_time = TimeUtil.now()
             self.start_time = TimeUtil.now()
+        
+    async def reset(self):
+        self.ticks = 0
 
 
 class RateLimiterSync:
@@ -92,3 +95,6 @@ class RateLimiterSync:
         else:
             self.tick_start_time = TimeUtil.now()
             self.start_time = TimeUtil.now()
+
+    def reset(self):
+        self.ticks = 0
