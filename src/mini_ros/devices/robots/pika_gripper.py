@@ -271,6 +271,11 @@ class PikaGripper(Robot):
             logger.error(f"Invalid action code: {action.code}, Do nothing.")
             return action
 
+        if action_code == RobotActionCode.STOP:
+            # Call robot stop
+            self.stop()
+            return action
+
         if action_code == RobotActionCode.IGNORE or action_code == RobotActionCode.DRAG:
             return action
         

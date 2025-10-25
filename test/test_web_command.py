@@ -36,12 +36,12 @@ queue = One2ManySender(name="sender", port=5555, data_type="dict")
 
 send_rate_limiter = RateLimiterSync(send_freq)
 step_idx = 0
-codes = ["IMPEDANCE", "POSITION", "ALIGN", "DRAG", "IGNORE"]
+codes = ["IMPEDANCE", "STOP"]
 while True:
     if step_idx >= len(joint_cmds_traj["marvin"]):
         break
     print(f"Step index: {step_idx}, Code: {codes[(step_idx // 100) % len(codes)]}")
-    code = codes[(step_idx // 100) % len(codes)]
+    code = codes[(step_idx // 200) % len(codes)]
     send_rate_limiter.wait_for_tick()
     marvin_action = RobotAction(joint_cmds=joint_cmds_traj["marvin"][step_idx], code=code)
     pika_0_action = RobotAction(joint_cmds=joint_cmds_traj["pika-0"][step_idx], code=code)

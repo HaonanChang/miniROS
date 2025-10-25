@@ -115,6 +115,12 @@ class MarvinRobot(Robot):
         except Exception as e:
             logger.error(f"Invalid action code: {action.code}, Do nothing.")
             return action
+
+        if action_code == RobotActionCode.STOP:
+            # Call robot stop
+            self.stop()
+            return action
+            
         self.switch_mode(action_code)
         if action_code == RobotActionCode.IGNORE or action_code == RobotActionCode.DRAG:
             return action

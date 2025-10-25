@@ -61,6 +61,15 @@ class MultiRobotSystem(Robot):
         """
         for device_name in self.device_keys:
             self.device(device_name).stop()
+    
+    def stop_at(self, device_name: str):
+        """
+        Stop a specific device.
+        """
+        if device_name not in self.device_keys:
+            logger.error(f"Device {device_name} not found in multi-robot")
+            raise ValueError(f"Device {device_name} not found in multi-robot")
+        return self.device(device_name).stop()
             
     def pause(self):
         """

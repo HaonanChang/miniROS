@@ -31,6 +31,7 @@ class RobotActionCode(OrderedEnum):
     IMPEDANCE = 2
     DRAG = 3
     ALIGN = 4
+    STOP = 5
 
 
 @dataclass

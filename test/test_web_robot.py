@@ -68,9 +68,9 @@ if __name__ == "__main__":
     parallel_robot.start()
     parallel_robot.join()
     
-    while True:
-        try:
-            time.sleep(1)
-        except KeyboardInterrupt:
-            break
-    parallel_robot.stop()
+    # while True:
+    #     try:
+    #         time.sleep(1)
+    #     except KeyboardInterrupt:
+    #         break
+    # parallel_robot.stop()

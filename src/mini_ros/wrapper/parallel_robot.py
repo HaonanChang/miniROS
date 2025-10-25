@@ -98,6 +98,7 @@ class ParallelRobotMT:
         logger.info(f"Start control thread for robot {robot_name}. Active: {self.multi_robot.is_active()}")
         last_robot_action: RobotAction = None
         while True:
+            logger.info(f"Control loop for {robot_name} is alive: {self.is_alive()}")
             if not self.is_alive():
                 break
 
@@ -119,6 +120,10 @@ class ParallelRobotMT:
             except Exception as e:
                 logger.error(f"Error in control loop for robot {robot_name}: {type(e).__name__}: {e}")
                 break
+        # Trigger the stop event
+        self.stop_event.set()
+        self.multi_robot.stop_at(device_name=robot_name)
+        logger.info(f"Stop event set, Quitting control loop for robot {robot_name}.")
 
     def read_loop(self, device_name: str) -> None:
         """
@@ -127,6 +132,7 @@ class ParallelRobotMT:
         read_rate_limiter = RateLimiterSync(self.read_freqs[device_name])
 
         while True:
+            logger.info(f"Read loop for {device_name} is alive: {self.is_alive()}")
             if not self.is_alive():
                 break
 
@@ -165,7 +171,7 @@ class ParallelRobotMT:
                 if not self.is_alive():
                     logger.info(f"Stop event set, quitting read loop for {device_name}...")
                     return
-            
+        self.multi_robot.stop_at(device_name=device_name)
         logger.info(f"Quitting read loop for robot {device_name}.")
 
     def is_alive(self) -> bool:
@@ -228,8 +234,9 @@ class WebParallelRobotMT(ParallelRobotMT):
 
     def join(self):
         super().join()
-        for web_write_thread, web_read_thread in zip(self.web_write_threads, self.web_read_threads):
+        for web_write_thread in self.web_write_threads:
             web_write_thread.join()
+        for web_read_thread in self.web_read_threads:
             web_read_thread.join()
         
     def web_read_loop(self, web_name: str) -> None:
@@ -244,6 +251,7 @@ class WebParallelRobotMT(ParallelRobotMT):
             }
         """
         while True:
+            logger.info(f"Web read loop for {web_name} is alive: {self.is_alive()}")
             if not self.is_alive():
                 break
 
@@ -270,6 +278,8 @@ class WebParallelRobotMT(ParallelRobotMT):
                     continue
             except Exception as e:
                 logger.error(f"Error in web read loop for {web_name}: {type(e).__name__}: {e}")
+        self.recvers[web_name].stop()
+        logger.info(f"Quitting web read loop for {web_name}.")
 
     def web_write_loop(self, web_name: str) -> None:
         """
@@ -278,9 +288,9 @@ class WebParallelRobotMT(ParallelRobotMT):
         Send the data to the web queue.
         """
         while True:
+            logger.info(f"Web write loop for {web_name} is alive: {self.is_alive()}")
             if not self.is_alive():
                 break
-
             try:
                 if web_name in self.action_buffer:
                     with self.action_mutex[web_name]:
@@ -294,6 +304,8 @@ class WebParallelRobotMT(ParallelRobotMT):
             except Exception as e:
                 logger.error(f"Error in web control loop for {web_name}: {type(e).__name__}: {e}")
                 break
+        logger.info(f"Quitting web write loop for {web_name}.")
+        self.senders[web_name].stop()
 
     def get_update_control_threads(self) -> List[threading.Thread]:
         """
