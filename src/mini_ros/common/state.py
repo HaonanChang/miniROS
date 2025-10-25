@@ -207,9 +207,9 @@ class RobotNodeState(OrderedEnum):
 ##########################################
 
 @functools.total_ordering
-class CommanderState(OrderedEnum):
+class ConsoleState(OrderedEnum):
     """
-    The state of the commander.
+    The state of the commander / web-console.
     To back-compatibility with RDC. Remove this after the transition is complete.
     """
 

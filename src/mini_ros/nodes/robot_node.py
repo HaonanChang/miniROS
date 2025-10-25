@@ -12,7 +12,7 @@ from loguru import logger
 from typing import Dict, Any
 from mini_ros.devices.robots.marvin_robot import MarvinRobot
 from mini_ros.devices.robots.pika_gripper import PikaGripper
-from mini_ros.common.state import CommanderState, RobotNodeState
+from mini_ros.common.state import ConsoleState, RobotNodeState
 from mini_ros.common.device import Robot, Device
 from mini_ros.network.network_queue import Many2OneSender, Many2OneRecver
 from mini_ros.utils.rate_limiter import RateLimiterAsync
@@ -45,7 +45,7 @@ class RobotNode:
         self._control_buffer = Dict[str, asyncio.Queue] = {name: asyncio.Queue(maxsize=1) for name in devices.keys()}
         # Mutex
         self.inter_state_mutex = asyncio.Lock()
-        self.commander_state = CommanderState.INIT
+        self.commander_state = ConsoleState.INIT
         self.inter_state = RobotNodeState.INIT
         # Rate limiters
         self._commander_listen_rate_limiter = RateLimiterAsync(rate=node_cfg.get("commander_listen_rate", 50))
@@ -81,7 +81,7 @@ class RobotNode:
                 if recv_commander_state is not None:
                     self.commander_state = recv_commander_state
                 else:
-                    self.commander_state = CommanderState.LOSE_CONNECTION
+                    self.commander_state = ConsoleState.LOSE_CONNECTION
             await self._commander_listen_rate_limiter.unset_busy("RobotNode_commander_listen_task")
     
     async def listen_loop(self, name: str):

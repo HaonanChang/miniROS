@@ -13,8 +13,8 @@ from mini_ros.system.robot_frequency_test import  create_timed_joint_cmds_traj, 
 from mini_ros.devices.robots.pika_gripper import PikaGripper, PikaGripperConfig
 from mini_ros.devices.robots.marvin_robot import MarvinRobot, MarvinRobotConfig
 from mini_ros.devices.io.recorder import EpisodeRecorder, RecorderConfig
-from mini_ros.wrapper.multi_robot import MultiRobotSystem
 from mini_ros.devices.cameras.rs_camera import RSCamera, RSCameraConfig
+from mini_ros.wrapper.multi_robot import MultiRobotSystem
 from mini_ros.wrapper.parallel_robot import ParallelRobotConfig, WebParallelRobotMT
 from mini_ros.utils.time_util import TimeUtil
 from mini_ros.utils.lang_util import LangUtil

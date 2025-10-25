@@ -1,6 +1,6 @@
 import asyncio
 import uvloop
-from mini_ros.nodes.commander_node import CommanderNode
+from mini_ros.devices.io.commander_node import Console
 from mini_ros.devices.io.web_wrapper import CommanderWebWrapper, bind_apis
 from mini_ros.utils.config import LazyConfig
 from mini_ros.utils.async_util import AsyncUtil
@@ -9,7 +9,7 @@ from loguru import logger
 
 
 async def main():
-    commander_node = CommanderNode()
+    commander_node = Console()
     await commander_node.initialize()
 
     commander_web_wrapper = CommanderWebWrapper(commander_node)
