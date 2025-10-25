@@ -98,7 +98,6 @@ class ParallelRobotMT:
         logger.info(f"Start control thread for robot {robot_name}. Active: {self.multi_robot.is_active()}")
         last_robot_action: RobotAction = None
         while True:
-            logger.info(f"Control loop for {robot_name} is alive: {self.is_alive()}")
             if not self.is_alive():
                 break
 
@@ -132,7 +131,6 @@ class ParallelRobotMT:
         read_rate_limiter = RateLimiterSync(self.read_freqs[device_name])
 
         while True:
-            logger.info(f"Read loop for {device_name} is alive: {self.is_alive()}")
             if not self.is_alive():
                 break
 
@@ -251,7 +249,6 @@ class WebParallelRobotMT(ParallelRobotMT):
             }
         """
         while True:
-            logger.info(f"Web read loop for {web_name} is alive: {self.is_alive()}")
             if not self.is_alive():
                 break
 
@@ -288,7 +285,6 @@ class WebParallelRobotMT(ParallelRobotMT):
         Send the data to the web queue.
         """
         while True:
-            logger.info(f"Web write loop for {web_name} is alive: {self.is_alive()}")
             if not self.is_alive():
                 break
             try:

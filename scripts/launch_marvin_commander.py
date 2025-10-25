@@ -22,18 +22,19 @@ async def main():
     with open(joint_config_file, "r") as f:
         joint_config = yaml.load(f, Loader=yaml.FullLoader)
     motor_config = motor_config_from_json(joint_config)
-    gello = FeetechReader(motor_config)
-    gello.initialize()
+    feetech_reader = FeetechReader(motor_config)
+    feetech_reader.initialize()
 
     # Build 
-    multi_robot = MultiRobotSystem(devices={"gello": gello})
-    parallel_robot = ParallelRobotMT(multi_robot, ParallelRobotConfig(
-        control_freqs={
-            "gello": 60,
-        },
-        read_freqs={
-            "gello": 60,
-        },
+    gello = ParallelRobotMT(
+        MultiRobotSystem(devices={"gello": feetech_reader}), 
+        ParallelRobotConfig(
+            control_freqs={
+                "gello": 60,
+            },
+            read_freqs={
+                "gello": 60,
+            },
     ))
 
     commander_node = CommanderNode()

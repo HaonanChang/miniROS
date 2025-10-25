@@ -52,4 +52,6 @@ while True:
         "pika-1": pika_1_action.asdict(),
     }, code="normal")
     step_idx += 1
+    if code == "STOP":
+        break
     
