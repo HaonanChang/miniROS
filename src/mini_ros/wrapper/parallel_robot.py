@@ -23,7 +23,7 @@ from mini_ros.utils.time_util import TimeUtil
 from mini_ros.utils.async_util import AsyncUtil
 from mini_ros.common.device import Robot, CameraData
 from mini_ros.wrapper.multi_robot import MultiRobotSystem
-from mini_ros.common.state import RobotAction, RobotState
+from mini_ros.common.state import RobotAction, RobotState, TimedData
 from mini_ros.utils.rate_limiter import RateLimiterAsync, RateLimiterSync
 from mini_ros.network.network_queue import WebQueue, Many2OneSender, Many2OneRecver, One2ManySender, One2ManyRecver
 
@@ -112,7 +112,7 @@ class ParallelRobotMT:
                         if last_robot_action is not None:
                             robot_action = deepcopy(last_robot_action)
                         else:
-                            logger.warning(f"No robot action to apply for robot {robot_name}! Keep waiting.")
+                            # logger.warning(f"No robot action to apply for robot {robot_name}! Keep waiting.")
                             continue
 
                 timed_robot_action = self.multi_robot.apply_action_to(robot_name, robot_action, is_record=True)
@@ -186,13 +186,13 @@ class WebParallelRobotMT(ParallelRobotMT):
     Parallel robot system.
     Support web queue to sync data.
     """
-    def __init__(self, multi_robot: MultiRobotSystem, web_queues: Dict[str, WebQueue], config: WebParallelRobotMTConfig):
+    def __init__(self, multi_robot: MultiRobotSystem, web_queues: List[WebQueue], config: WebParallelRobotMTConfig):
         super().__init__(multi_robot, config)
 
         # Initialize web queues
         self.senders: Dict[str, Many2OneSender | One2ManySender] = {}
         self.recvers: Dict[str, Many2OneRecver | One2ManyRecver] = {}
-        for web_queue in web_queues.keys():
+        for web_queue in web_queues:
             if isinstance(web_queue, Many2OneSender):
                 self.senders[web_queue.name] = web_queue
             elif isinstance(web_queue, One2ManySender):
@@ -206,6 +206,10 @@ class WebParallelRobotMT(ParallelRobotMT):
     
     def start(self):
         super().start()
+        for web_queue in self.senders.values():
+            web_queue.start()
+        for web_queue in self.recvers.values():
+            web_queue.start()
         self.web_write_threads = []
         self.web_read_threads = []
         for web_name in self.senders.keys():
@@ -214,6 +218,13 @@ class WebParallelRobotMT(ParallelRobotMT):
         for web_name in self.recvers.keys():
             self.web_read_threads.append(threading.Thread(target=self.web_read_loop, args=(web_name,)))
             self.web_read_threads[-1].start()
+
+    def stop(self):
+        super().stop()
+        for web_queue in self.senders.values():
+            web_queue.stop()
+        for web_queue in self.recvers.values():
+            web_queue.stop()
 
     def join(self):
         super().join()
@@ -226,20 +237,37 @@ class WebParallelRobotMT(ParallelRobotMT):
         Web read loop.
         Get data from the web queue.
         Write into the action buffer if the data is a RobotAction.
+        Protocol:
+            {
+                'top_name_1': XX,
+                'top_name_2': XX,
+            }
         """
         while True:
             if not self.is_alive():
                 break
 
             try:
-                data = self.recvers[web_name].get(timeout=10)
+                # logger.info(f"Waiting for data from {web_name}...")
+                data: Dict[str, Any] | None = self.recvers[web_name].get(timeout=1)
+                if isinstance(data, TimedData):
+                    data = data.data
                 # Write into control buffer
                 if data is None:
                     logger.warning(f"Connection timeout... Keep waiting.")
                     continue
-                elif isinstance(data, RobotAction):
-                    with self.action_mutex[web_name]:
-                        self.action_buffer[web_name] = data
+                elif isinstance(data, dict):
+                    # logger.info(f"Received data from {web_name}: {data}")
+                    for top_name, top_data in data.items():
+                        if top_name in self.action_buffer:
+                            with self.action_mutex[top_name]:
+                                self.action_buffer[top_name] = deepcopy(RobotAction(**top_data))
+                        else:
+                            logger.warning(f"Topic {top_name} not found in action buffer! Keep waiting.")
+                            continue
+                else:
+                    logger.warning(f"Invalid data type: {type(data)}! Keep waiting.")
+                    continue
             except Exception as e:
                 logger.error(f"Error in web read loop for {web_name}: {type(e).__name__}: {e}")
 
@@ -262,7 +290,13 @@ class WebParallelRobotMT(ParallelRobotMT):
                 else:
                     raise ValueError(f"No action to send for {web_name}!")
 
-                data = self.senders[web_name].put(data)
+                data = self.senders[web_name].put({web_name: data.asdict()})
             except Exception as e:
                 logger.error(f"Error in web control loop for {web_name}: {type(e).__name__}: {e}")
                 break
+
+    def get_update_control_threads(self) -> List[threading.Thread]:
+        """
+        Update the control loop. Bypass.
+        """
+        return []

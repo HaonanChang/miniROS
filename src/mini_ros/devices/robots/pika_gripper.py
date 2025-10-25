@@ -10,6 +10,7 @@ import json
 from dataclasses import dataclass
 from enum import Enum
 from loguru import logger
+from mini_ros.common.state import RobotActionCode
 from mini_ros.common.device import Robot, Recorder
 from mini_ros.common.error import RobotExecuteError
 from mini_ros.utils.time_util import TimeUtil
@@ -264,6 +265,15 @@ class PikaGripper(Robot):
         return self._send_command(PIKACommandType.CURRENT.value, current)
 
     def apply_action(self, action: RobotAction, is_record: bool = False) -> RobotAction:
+        try:
+            action_code = RobotActionCode[action.code]
+        except Exception as e:
+            logger.error(f"Invalid action code: {action.code}, Do nothing.")
+            return action
+
+        if action_code == RobotActionCode.IGNORE or action_code == RobotActionCode.DRAG:
+            return action
+        
         gripper_width = action.joint_cmds[0]  # (0~1)
         gripper_width = np.clip(gripper_width, 0, 1) * PIKA_GRIPPER_WIDTH
 

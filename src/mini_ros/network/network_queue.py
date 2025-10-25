@@ -23,6 +23,19 @@ from mini_ros.utils.net_util import NetUtil
 class WebQueue:
     """
     """
+
+    def __init__(self):
+        self.stop_event = threading.Event()
+
+    def is_alive(self):
+        return not self.stop_event.is_set()
+    
+    def start(self):
+        pass
+
+    def stop(self):
+        self.stop_event.set()
+    
     def put(self, data: Any):
         pass
     
@@ -40,27 +53,32 @@ class WebQueue:
     
     def polling_loop(self):
         pass
-    
-    def start_in_thread(self):
-        pass
-
 
 class Many2OneSender(WebQueue):
     """
     Sender for NetworkQueue. Used for sending data to the recver.
     """
 
-    def __init__(self, name: str, port: int, timeout: int = 1000, data_type: str = 'str'):
+    def __init__(self, name: str, host: str = "localhost", port: int = 5555, timeout: int = 100, data_type: str = 'str'):
+        super().__init__()
         self.name = name
+        self.host = host
         self.port = port
         self.timeout = timeout
         self.data_type = data_type
         self.socket = zmq.Context().socket(zmq.DEALER)
-        self.socket.connect(f"tcp://localhost:{port}")
+        self.socket.connect(f"tcp://{host}:{port}")
         self.poller = zmq.Poller()
         self.poller.register(self.socket, zmq.POLLIN)  
         self._counter = 0  # Internal counter for checking data consistency
         self._max_counter = 2**63 - 1  # Maximum safe counter value (signed 64-bit)
+
+    def start(self):
+        pass
+
+    def stop(self):
+        super().stop()
+        self.socket.close()
 
     def put(self, data: Any, timestamp: float = None, code: str = "normal"):
         """
@@ -79,7 +97,7 @@ class Many2OneSender(WebQueue):
         timestamp_bytes = str(timestamp).encode('utf-8')
         counter_bytes = self._counter.to_bytes(8, "big")    # 64 bits counter
         self.socket.send_multipart([self.name.encode('utf-8'), timestamp_bytes, code.encode('utf-8'), encoded_data, counter_bytes])
-        logger.info(f"Client {self.name} sent data: {data.decode() if isinstance(data, bytes) else data} with counter {self._counter}")
+        # logger.info(f"Client {self.name} sent data: {data.decode() if isinstance(data, bytes) else data} with counter {self._counter}")
         # Prevent counter overflow
         if self._counter >= self._max_counter:
             logger.warning(f"Counter overflow detected, resetting to 0")
@@ -93,7 +111,7 @@ class Many2OneSender(WebQueue):
             # [timestamp, code, counter]
             recv_counter = int.from_bytes(parts[2], "big")
             recv_code = parts[1].decode('utf-8')
-            logger.info(f"Recv code: {recv_code}, counter: {recv_counter}, current counter: {self._counter}")
+            # logger.info(f"Recv code: {recv_code}, counter: {recv_counter}, current counter: {self._counter}")
             return True
         else:
             logger.warning(f"{self.name} waiting for reply from server timed out.")
@@ -119,21 +137,33 @@ class Many2OneRecver(WebQueue):
     As recver is using Router, it can receive data from multiple senders.
     """
 
-    def __init__(self, name: str, port: int, timeout: int = 1000, data_type: str = 'str'):
+    def __init__(self, name: str, host: str = "*", port: int = 5555, timeout: int = 100, data_type: str = 'str'):
+        super().__init__()
         self.queues: Dict[str, queue.Queue] = {}
         self.name = name
+        self.host = host
         self.port = port
         self.timeout = timeout
         self.data_type = data_type
         self.socket = zmq.Context().socket(zmq.ROUTER)
-        self.socket.bind(f"tcp://*:{port}")
+        self.socket.bind(f"tcp://{host}:{port}")
         self.socket.setsockopt(zmq.RCVTIMEO, timeout)
         self.poller = zmq.Poller()
         self.poller.register(self.socket, zmq.POLLIN)
         self._counter = 0  # Internal counter for checking data consistency
         self._max_counter = 2**63 - 1  # Maximum safe counter value (signed 64-bit)
+        self.polling_thread = None
 
-    def get(self, name: str, timeout: int = 10):
+    def start(self):
+        self.polling_thread = threading.Thread(target=self.polling_loop, daemon=True)
+        self.polling_thread.start()
+
+    def stop(self):
+        super().stop()
+        self.polling_thread.join()
+        self.socket.close()
+
+    def get(self, name: str, timeout: int = 1):
         if name not in self.queues:
             logger.warning(f"Queue {name} does not exist yet, will return None.")
             return None
@@ -161,7 +191,7 @@ class Many2OneRecver(WebQueue):
             return 0
         return self.queues[name].qsize()
     
-    def polling_loop(self, timeout: int = 10):
+    def polling_loop(self, timeout: int = 1):
         """
         Polling loop for the router recver.
         Receive data from the clients and put it into the queue.
@@ -170,6 +200,8 @@ class Many2OneRecver(WebQueue):
         Send format: [client_id, timestamp, code, counter]
         """
         while True:
+            if not self.is_alive():
+                break
             try:
                 socks = dict(self.poller.poll(self.timeout))
                 if socks.get(self.socket) == zmq.POLLIN:
@@ -206,7 +238,7 @@ class Many2OneRecver(WebQueue):
                         # Send reply to client (ROUTER needs client_id first)
                         # Format: [client_identity, timestamp, code, counter]
                         self.socket.send_multipart([client_identity, str(recv_timestamp).encode('utf-8'), "normal".encode('utf-8'), recv_counter.to_bytes(8, "big")])
-                        logger.info(f"Sent reply with counter {recv_counter} to client {client_name}")
+                        # logger.info(f"Sent reply with counter {recv_counter} to client {client_name}")
                         self._counter = recv_counter
                     else:
                         logger.warning(f"Received message with insufficient parts: {len(parts)}")
@@ -215,9 +247,6 @@ class Many2OneRecver(WebQueue):
             except Exception as e:
                 logger.error(f"Error in polling loop: {e}")
                 time.sleep(0.1)  # Brief pause before retrying
-    
-    def start_in_thread(self):
-        threading.Thread(target=self.polling_loop, daemon=True).start()
 
 
 ########################################################################################
@@ -230,18 +259,26 @@ class One2ManySender(WebQueue):
     Uses PUB socket to send to multiple SUB receivers.
     """
 
-    def __init__(self, name: str, port: int, data_type: str = 'str'):
+    def __init__(self, name: str, host: str = "*", port: int = 5555, data_type: str = 'str'):
+        super().__init__()
         self.name = name
         self.port = port
         self.data_type = data_type
         self.socket = zmq.Context().socket(zmq.PUB)
-        self.socket.bind(f"tcp://*:{port}")
+        self.socket.bind(f"tcp://{host}:{port}")
         self._counter = 0  # Internal counter for checking data consistency
         self._max_counter = 2**63 - 1  # Maximum safe counter value (signed 64-bit)
         
         # Give subscribers time to connect
         time.sleep(0.1)
         logger.info(f"Publisher {self.name} started on port {self.port}")
+
+    def start(self):
+        pass
+
+    def stop(self):
+        super().stop()
+        self.socket.close()
 
     def put(self, data: Any, timestamp: float = None, code: str = "normal"):
         """
@@ -261,7 +298,7 @@ class One2ManySender(WebQueue):
         
         # Send to all subscribers
         self.socket.send_multipart([timestamp_bytes, code.encode('utf-8'), encoded_data, counter_bytes])
-        logger.info(f"Publisher {self.name} sent data: {data.decode() if isinstance(data, bytes) else data} with counter {self._counter}")
+        # logger.info(f"Publisher {self.name} sent data: {data.decode() if isinstance(data, bytes) else data} with counter {self._counter}")
         
         # Prevent counter overflow
         if self._counter >= self._max_counter:
@@ -291,23 +328,35 @@ class One2ManyRecver(WebQueue):
     Uses SUB socket to receive from a PUB sender.
     """
 
-    def __init__(self, name: str, port: int, timeout: int = 1000, data_type: str = 'str'):
+    def __init__(self, name: str, host: str = "localhost", port: int = 5555, timeout: int = 100, data_type: str = 'str'):
+        super().__init__()
         self.queue = queue.Queue()
         self.name = name
         self.port = port
+        self.host = host
         self.timeout = timeout
         self.data_type = data_type
         self.socket = zmq.Context().socket(zmq.SUB)
-        self.socket.connect(f"tcp://localhost:{port}")
+        self.socket.connect(f"tcp://{host}:{port}")
         self.socket.setsockopt(zmq.SUBSCRIBE, b"")  # Subscribe to all messages
         self.socket.setsockopt(zmq.RCVTIMEO, timeout)
         self.poller = zmq.Poller()
         self.poller.register(self.socket, zmq.POLLIN)
         self._counter = 0  # Internal counter for checking data consistency
         self._max_counter = 2**63 - 1  # Maximum safe counter value (signed 64-bit)
+        self.polling_thread = None
         logger.info(f"Subscriber {self.name} connected to port {self.port}")
 
-    def get(self, timeout: int = 10):
+    def start(self):
+        self.polling_thread = threading.Thread(target=self.polling_loop, daemon=True)
+        self.polling_thread.start()
+
+    def stop(self):
+        super().stop()
+        self.polling_thread.join()
+        self.socket.close()
+
+    def get(self, timeout: int = 1):
         """
         Get is blocking.
         Get data from the queue.
@@ -332,8 +381,10 @@ class One2ManyRecver(WebQueue):
     def size(self):
         return self.queue.qsize()
     
-    def polling_loop(self, timeout: int = 10):
+    def polling_loop(self, timeout: int = 1):
         while True:
+            if not self.is_alive():
+                break
             try:
                 socks = dict(self.poller.poll(self.timeout))
                 if socks.get(self.socket) == zmq.POLLIN:
@@ -360,7 +411,7 @@ class One2ManyRecver(WebQueue):
                         else:
                             self.queue.put(timed_data, timeout=timeout)
 
-                        logger.info(f"Subscriber {self.name} received data: {decoded_data} with counter {counter}")
+                        # logger.info(f"Subscriber {self.name} received data: {decoded_data} with counter {counter}")
                         self._counter = counter
                     else:
                         logger.warning(f"Received message with insufficient parts: {len(parts)}")
@@ -369,6 +420,3 @@ class One2ManyRecver(WebQueue):
             except Exception as e:
                 logger.error(f"Error in polling loop: {e}")
                 time.sleep(0.1)  # Brief pause before retrying
-    
-    def start_in_thread(self):
-        threading.Thread(target=self.polling_loop, daemon=True).start()

@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from loguru import logger
 from mini_ros.common.device import Robot, RobotState, RobotAction, Recorder
+from mini_ros.common.state import RobotActionCode, RobotActionCode
 from mini_ros.common.error import RobotExecuteError
 from mini_ros.utils.time_util import TimeUtil
 from mini_ros.utils.io_util import IOUtil
@@ -72,7 +73,8 @@ class MarvinRobot(Robot):
         self.mute_skd_log = config.mute_skd_log
         self.is_new_version = config.is_new_version
         self.init_timeout = config.init_timeout
-        self.mode = "init"
+        self.state_mutex = threading.Lock()
+        self.state_code: RobotActionCode = RobotActionCode.IGNORE
         super().__init__()
 
     def is_state_valid(self, state: RobotState) -> bool:
@@ -107,6 +109,16 @@ class MarvinRobot(Robot):
         action = RobotAction(timestamp=0, joint_cmds=[90.0, -70.0, -90.0, -110.0, 90.0, 0.0, 0.0, -90.0, -70.0, 90.0, -110.0, -90.0, 0.0, 0.0])
         self.apply_action(action)
         """
+        # print(f"Action code: {action.code}")
+        try:
+            action_code = RobotActionCode[action.code]
+        except Exception as e:
+            logger.error(f"Invalid action code: {action.code}, Do nothing.")
+            return action
+        self.switch_mode(action_code)
+        if action_code == RobotActionCode.IGNORE or action_code == RobotActionCode.DRAG:
+            return action
+        
         if self.mute_skd_log:
             IOUtil.mute()
         self.robot.clear_set()
@@ -185,9 +197,9 @@ class MarvinRobot(Robot):
         # Set control mode
         self.robot.clear_set()
         if self.control_mode == "impedance":
-            self.switch_mode("impedance")
+            self.switch_mode(RobotActionCode.IMPEDANCE)
         elif self.control_mode == "position":
-            self.switch_mode("position")
+            self.switch_mode(RobotActionCode.POSITION)
         else:
             raise ValueError(f"Invalid control mode: {self.control_mode}")
 
@@ -221,7 +233,8 @@ class MarvinRobot(Robot):
         if self.mute_skd_log:
             IOUtil.restore()
         time.sleep(0.25)
-        self.mode = "init"  # Set mode back to init after pause
+        with self.state_mutex:
+            self.state_code = RobotActionCode.IGNORE
 
     def _stop_robot(self):
         """
@@ -238,7 +251,7 @@ class MarvinRobot(Robot):
         self._active_event.set()
         logger.info("Marvin robot rebooted")
 
-    def set_safe_speed(self):
+    def _set_safe_speed(self):
         """
         Set robot to safe mode.
         """
@@ -252,7 +265,7 @@ class MarvinRobot(Robot):
             IOUtil.restore()
         time.sleep(0.25)
 
-    def set_normal_speed(self):
+    def _set_normal_speed(self):
         """
         Set robot to normal mode.
         """
@@ -266,30 +279,45 @@ class MarvinRobot(Robot):
             IOUtil.restore()
         time.sleep(0.25)
 
-    def switch_mode(self, mode: str):
+    def switch_mode(self, mode: RobotActionCode):
         """
         Swith between different modes:
          - init: mode robot is not initialized.
          - drag: mode robot can be drag.
          - impedance: mode robot can be controlled.
          - position: mode robot can be controlled.
+         - align: mode robot is aligning to the target position.
         """
-        if mode == self.mode:
+        with self.state_mutex:
+            state_code = self.state_code
+        if mode == state_code:
             return
 
-        if mode == "drag":
-            if self.mode != "impedance":
+        if mode == RobotActionCode.IMPEDANCE:
+            # Impedance mode is impedance control with normal speed.
+            if self.state_code == RobotActionCode.DRAG:
+                self._unset_drag_mode()
+            self._set_normal_speed()
+            self._set_impedance_mode()
+        elif mode == RobotActionCode.POSITION:
+            # Position mode is position control with normal speed.
+            if state_code == RobotActionCode.DRAG:
+                self._unset_drag_mode()
+            self._set_normal_speed()
+            self._set_position_mode()
+        elif mode == RobotActionCode.ALIGN:
+            # Align mode is impedance mode with safe speed.
+            if state_code != RobotActionCode.IMPEDANCE:
+                self._set_impedance_mode()
+            self._set_safe_speed()
+        elif mode == RobotActionCode.DRAG:
+            logger.info("Entering robot to drag mode...")
+            if state_code != RobotActionCode.IMPEDANCE:
                 # Drag mode needs to be set impedance mode first.
                 self._set_impedance_mode()
             self._set_drag_mode()
-        elif mode == "impedance":
-            if self.mode == "drag":
-                self._unset_drag_mode()
-            self._set_impedance_mode()
-        elif mode == "position":
-            if self.mode == "drag":
-                self._unset_drag_mode()
-            self._set_position_mode()
+        elif mode == RobotActionCode.IGNORE:
+            logger.info("Ignoring robot action, do nothing.")
         else:
             raise ValueError(f"Invalid mode: {mode}")
 
@@ -297,6 +325,7 @@ class MarvinRobot(Robot):
         """
         Set robot to drag mode.
         """
+        logger.info("Setting robot to drag mode...")
         if self.mute_skd_log:
             IOUtil.mute()
         self.robot.clear_set()
@@ -317,7 +346,8 @@ class MarvinRobot(Robot):
 
         if self.mute_skd_log:
             IOUtil.restore()
-        self.mode = "drag"
+        with self.state_mutex:
+            self.state_code = RobotActionCode.DRAG
 
     def _unset_drag_mode(self):
         """
@@ -343,7 +373,8 @@ class MarvinRobot(Robot):
 
         if self.mute_skd_log:
             IOUtil.restore()
-        self.mode = "impedance"
+        with self.state_mutex:
+            self.state_code = RobotActionCode.IMPEDANCE
 
     def _set_impedance_mode(self):
         """
@@ -367,8 +398,8 @@ class MarvinRobot(Robot):
         time.sleep(0.25)
         if self.mute_skd_log:
             IOUtil.restore()
-        self.mode = "impedance"
-
+        with self.state_mutex:
+            self.state_code = RobotActionCode.IMPEDANCE
 
     def _set_position_mode(self):
         """
@@ -393,7 +424,8 @@ class MarvinRobot(Robot):
         time.sleep(0.25)
         if self.mute_skd_log:
             IOUtil.restore()
-        self.mode = "position"
+        with self.state_mutex:
+            self.state_code = RobotActionCode.POSITION
 
     @property
     def num_dof(self) -> int:

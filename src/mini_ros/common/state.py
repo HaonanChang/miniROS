@@ -22,14 +22,15 @@ class InputDeviceState(OrderedEnum):
 
 
 @functools.total_ordering
-class RobotDeviceState(OrderedEnum):
+class RobotActionCode(OrderedEnum):
     """
-    State for robot devices.
+    State deciding how to execute the robot action.
     """
-    INIT = 0
-    OPEN = 1   
-    RUNNING = 2
-    STOPPED = 3
+    IGNORE = 0
+    POSITION = 1
+    IMPEDANCE = 2
+    DRAG = 3
+    ALIGN = 4
 
 
 @dataclass
@@ -54,7 +55,41 @@ class RobotState:
     # (6,): (x, y, z, roll, pitch, yaw)
     base_velocity: list[float] = field(default_factory=list)
     # (1,): Data Status
-    data_status: str = ""
+    code: str = ""
+
+    def asdict(self):
+        result = {}
+        result["timestamp"] = self.timestamp
+        if isinstance(self.joint_positions, np.ndarray):
+            result["joint_positions"] = self.joint_positions.tolist()
+        else:
+            result["joint_positions"] = self.joint_positions
+        if isinstance(self.joint_velocities, np.ndarray):
+            result["joint_velocities"] = self.joint_velocities.tolist()
+        else:
+            result["joint_velocities"] = self.joint_velocities
+        if isinstance(self.joint_efforts, np.ndarray):
+            result["joint_efforts"] = self.joint_efforts.tolist()
+        else:
+            result["joint_efforts"] = self.joint_efforts
+        if isinstance(self.joint_currents, np.ndarray):
+            result["joint_currents"] = self.joint_currents.tolist()
+        else:
+            result["joint_currents"] = self.joint_currents
+        if isinstance(self.end_effector_positions, np.ndarray):
+            result["end_effector_positions"] = self.end_effector_positions.tolist()
+        else:
+            result["end_effector_positions"] = self.end_effector_positions
+        if isinstance(self.base_pose, np.ndarray):
+            result["base_pose"] = self.base_pose.tolist()
+        else:
+            result["base_pose"] = self.base_pose
+        if isinstance(self.base_velocity, np.ndarray):
+            result["base_velocity"] = self.base_velocity.tolist()
+        else:
+            result["base_velocity"] = self.base_velocity
+        result["code"] = self.code
+        return result
 
 
 @dataclass
@@ -79,8 +114,31 @@ class RobotAction:
     # Base Velocity Control
     base_velocity_cmds: list[float] = field(default_factory=list)
     # (1,): Data Status
-    data_status: str = ""
-    
+    code: str = ""
+
+    def asdict(self):
+        result = {}
+        result["timestamp"] = self.timestamp
+        result["timestamp_recv"] = self.timestamp_recv
+        if isinstance(self.joint_cmds, np.ndarray):
+            result["joint_cmds"] = self.joint_cmds.tolist()
+        else:
+            result["joint_cmds"] = self.joint_cmds
+        if isinstance(self.end_effector_cmds, np.ndarray):
+            result["end_effector_cmds"] = self.end_effector_cmds.tolist()
+        else:
+            result["end_effector_cmds"] = self.end_effector_cmds
+        if isinstance(self.base_pose_cmds, np.ndarray):
+            result["base_pose_cmds"] = self.base_pose_cmds.tolist()
+        else:
+            result["base_pose_cmds"] = self.base_pose_cmds
+        if isinstance(self.base_velocity_cmds, np.ndarray):
+            result["base_velocity_cmds"] = self.base_velocity_cmds.tolist()
+        else:
+            result["base_velocity_cmds"] = self.base_velocity_cmds
+        result["code"] = self.code
+        return result
+
 
 @dataclass
 class CameraData:

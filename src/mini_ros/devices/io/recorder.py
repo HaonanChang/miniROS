@@ -148,7 +148,7 @@ class EpisodeRecorder(Recorder):
                     "action_timestamp": data.timestamp,
                     "action_gello_timestamp": data.timestamp_recv,
                     "action": data.joint_cmds,
-                    "commander_state": data.data_status,
+                    "commander_state": data.code,
                 }
             elif isinstance(data, RobotState):
                 return {
@@ -159,7 +159,7 @@ class EpisodeRecorder(Recorder):
                     "joint_currents": data.joint_currents,
                     "torques": data.joint_efforts,
                     "ee_pos": data.end_effector_positions,
-                    "commander_state": data.data_status,
+                    "commander_state": data.code,
                 }
             else:
                 raise ValueError(f"Invalid data type: {type(data)}")

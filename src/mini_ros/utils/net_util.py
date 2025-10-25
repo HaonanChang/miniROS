@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 import pickle
 import base64
-from typing import Union, Any, Dict, Tuple
+from typing import Union, Any, Dict, Tuple, List
 import io
 
 
@@ -23,9 +23,20 @@ class NetUtil:
             return cls.encode_image(data)
         elif data_type == 'string' or data_type == 'str':
             return cls.encode_string(data)
+        elif data_type == 'dict':
+            return cls.encode_dict(data)
         else:
             raise ValueError(f"Invalid data_type: {data_type}. Must be 'ndarray', 'numpy', 'image', 'string'")
     
+    @classmethod
+    def encode_dict(cls, data: Dict) -> bytes:
+        """
+        Encode a dictionary to bytes for ZMQ transmission.
+        """
+        if not isinstance(data, dict):
+            raise ValueError("Input must be a dictionary")
+        return pickle.dumps(data)
+
     @classmethod
     def encode_ndarray(cls, array: np.ndarray) -> bytes:
         """
@@ -168,6 +179,9 @@ class NetUtil:
             return cls._decode_string(data)
         
         elif data_type == 'pickle':
+            return pickle.loads(data)
+        
+        elif data_type == 'dict':
             return pickle.loads(data)
         
         else:
